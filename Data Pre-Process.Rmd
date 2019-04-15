@@ -1,0 +1,329 @@
+---
+title: "Data Pre-Processing"
+author: "Rajesh K Pahari"
+date: "January 27, 2019"
+output:
+  html_document:
+    keep_md: yes
+    theme: readable
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+
+# This is for knitting.
+
+#Common r Data Structure
+
+#Vector- 1Dimension
+#Matrix-2D
+# Data Frame- 2D can contain data of different types
+# Remember in R index starts with 1 
+# Remember in Python index starts with 0
+
+##########################Data Structure#########
+#Vectors
+x= c(1,112,-3,7,90,5)
+
+
+length(x)
+
+
+typeof(x)
+
+x= c(x,8)
+
+x
+
+x=c(x,"cat")
+
+x
+
+typeof(x)
+
+x[1:3]
+x[-1]
+
+
+# Define a Range
+rang<- 1:10
+rang
+
+
+#Sequence
+seq(10)
+seq(15,20)
+y= seq(10,20, by = 2)
+y
+typeof (y)
+
+typeof(as.integer(y))
+y
+typeof(y) 
+
+
+###Matrix
+
+m = matrix(1:6,nrow=3,ncol=3)
+
+m
+
+y
+
+m2 = matrix(y,nrow=2,ncol=3)
+
+m2
+
+# Bind columns & row of two vectors
+
+x= 1:4
+y =10:13
+m3=cbind(x,y)
+m3
+
+typeof (m3)
+
+m4=rbind(x,y)
+m4
+
+
+#Data frame
+df1 = as.data.frame(rbind(x,y))
+
+df1
+
+typeof(df1)
+
+str(df1)# Structure of Dataframe
+
+length(df1)
+
+############################Data Frames#############
+data() #List of inbuilt datasets
+
+data(package="datasets")# Same result will list inbuilt datasets
+
+head(mtcars)
+
+data(mtcars)
+str(mtcars) #Structure of the datasets
+
+
+
+############################Remove NAs#############
+library(MASS)# Inbuilt Package
+
+# Checking the data- Very important steps
+data("airquality")
+??airquality
+str(airquality)
+# See the result NA values are there in input data
+summary(airquality)
+#######################Remove NA related obesrvations#######
+#Lets us try to remove all NAs
+aq= na.omit(airquality) # Do not operate on roiginal datsets
+
+#Lets check the result
+aq[10:20,]
+summary(aq)
+# But where these NA gone...what value replaced NA in thjolse NA cells?..lets #check
+head(airquality)
+# Can see the 5th row of Ozne 5th & 6th of solar is NA
+head(aq)
+# Now see 5th and 6th rows have been removed
+# so the above omit command removed the the rows containing a value 'NA'
+
+# Another way to do it
+aq2= airquality[complete.cases(airquality),]# Need rows having non-NA
+head(aq2)
+# againthe 5th and 6th row isremoved.
+
+# now both command surves same purpose ..so why we need later command.
+# well we can remove a column also..though it is highly unlikely
+# that we need to remove a column...but we dont know what are the 
+# scenarios we may face during realworld data maniultion
+
+
+
+
+#######################Replace  NA with zeros############################
+# Sometomes we want to obesrvations having NAs. but dont want to consider
+#its' affectin calculations
+aq3= airquality # Before edikting datasets copy it..dont edit original dataset
+
+aq3[is.na(aq3)]<-0 # Find out cell having 0 and assign 0 in it
+head(aq3)
+# See 5th and 6th rown for ozone and SolarR
+# Why we need this..take a look in Boston datasets
+
+
+
+
+############Dont consider NA during mean computation###########################
+# Sometomes we want to obesrvations having NAs. but  want to consider
+#its' mean affect in calculations
+mean_ozone= mean(airquality$Ozone,na.rm=T)
+mean_ozone
+mean(airquality$Ozone)
+# See the difference of these two results.
+
+
+
+#######################Replace  NA with MeanValues############################
+# Sometomes we want to obesrvations having NAs. but dont want to consider
+#its' affectin calculations
+####Find out how we can replace ythe Value???????
+aq4= airquality # Before edikting datasets copy it..dont edit original dataset
+
+ifelse(is.na(aq4$Ozone),mean(aq4$Ozone),aq4$Ozone)
+ifelse(is.na(aq4$Solar.R),mean(aq4$Solar.R),aq4$Solar.R)
+ifelse(is.na(aq4$Wind),mean(aq4$Wind),aq4$Wind)
+ifelse(is.na(aq4$Temp),mean(aq4$Temp),aq4$Temp)
+ifelse(is.na(aq4$Month),mean(aq4$Month),aq4$Month)
+ifelse(is.na(aq4$Day),mean(aq4$Day),aq4$Day)
+
+head(aq4)
+
+##So we can remove NA...but before that...dont we observe the NA ocuurance #pattern to apply Right approach whether to impute NAs or not
+# NExt section is about the visualisation of pattern of NAs
+
+
+
+#######################Visualize the pattern of NA############################
+# Load required Packages
+#install.packages("mice")
+library(mice)
+
+#Copy original dataset in working dataset
+work_ds = airquality
+md.pattern(work_ds)
+
+
+# Lets now Draw another graph
+#install.packages("VIM")
+#install.packages("readxl")
+library(VIM)
+mp <- aggr(work_ds, col=c('navyblue','yellow'),number=T,sortvars=T,labels=names(work_ds),cex.axis=.7,gap=3,ylab=c("Missing data","Pattern"))
+
+
+################################Imputation############################
+#####Predictive mean Mapping- One of the widely used method
+impute_NA=mice(work_ds,m=5,maxit=50,method='pmm',seed=500)
+#50..iterations
+# 5 datasets
+summary(impute_NA)
+
+
+#So what are thevalues which have been mputed
+head(impute_NA$imp$Ozone)
+head(impute_NA$imp$Solar.R)
+
+# Getback the completed dataset
+final_data<-complete(impute_NA,1)
+head(final_data)
+
+################################################################################
+
+################################Data Cleaning###################################
+
+################################################################################
+
+#Lets first Load Required Packages
+#install.packages("caret")
+library(caret)
+#Load Data 
+orig_data<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section3\\countries-ecologicalF.csv")
+#copy data in work file with which we will play
+
+work_data= orig_data
+
+####### Lets Check the data
+#Check few data
+head(work_data)
+#View the entire dataset ..Scan and try to understand
+View(work_data)
+#Lets understand structure of data
+str(work_data)
+
+
+# What we see GDP.per.capita is factor? Why not numbers...See the data once #again..and try to understand...The value '$' & ','
+#Lets remove thse signs from data
+work_data$GDP.per.Capita=as.numeric(work_data$GDP.per.Capita)
+head(work_data$GDP.per.Capita)
+View(orig_data)
+# See the result....it has changed lets say for afganistan..its not desired.
+#Lets copy data again
+work_data=orig_data
+
+work_data$GDP.per.Capita=as.numeric(gsub("[\\$,]","",work_data$GDP.per.Capita))
+head(work_data$GDP.per.Capita)
+#Now see the result ..the numeric value has not changed.
+# in earlier code system made a conversion of whole factor.
+#in Later code we remove unwanted symbols first and then apply as.numeric function
+
+# But wait ..This is not standard procedue to do these operations.
+# We should not change the column GDP.per.capita rather we create
+# another column
+
+#Lets copy data again
+work_data=orig_data
+#Create another column where we will store cleaned value of GDP.per.Capita
+
+work_data$GDP=as.numeric(gsub("[\\$,]","",work_data$GDP.per.Capita))
+View(work_data)
+#Lets Understand gsub function
+#it replaces value...just imagibe windows replace function 'a' replaces 'b'
+# Hers a =' $ ' & ","   and b =""
+
+
+#Now there are 22 columns in the datasets. Do we need so much column for our 
+#work? if not lets creatge a datasets using the required columns
+str(work_data)
+data_name = names(work_data) %in% c("Population..millions.","GDP","Grazing.Footprint","HDI","Carbon.Footprint","Cropland","Forest.Land","Urban.Land","Total.Biocapacity")
+work_data_final= work_data [data_name]
+str(work_data_final)
+summary(work_data_final)
+
+#Lets create another datasets for excluded data
+excluded_work_data= work_data [!data_name]
+head(excluded_work_data)
+
+library(mice)
+md.pattern(work_data_final)
+
+#Omit NA
+work_data_final= na.omit(work_data_final)
+
+#lets change name of some of the columns
+names(work_data_final)[names(work_data_final)=="Population..millions."]="Population"
+names(work_data_final)[names(work_data_final)=="Total.Biocapacity"]="Biocapacity"
+head(work_data_final)
+write.csv(work_data_final,"C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section3\\biocap.csv")
+
+```
+

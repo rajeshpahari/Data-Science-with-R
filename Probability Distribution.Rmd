@@ -1,0 +1,413 @@
+---
+title: "Linear Regression"
+author: "Rajesh K Pahari"
+date: "February 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+###################################################################################################################################################Probabolity Distribution##########################################
+##############################################################################################################################
+
+
+#Variables: Discrete and contineous
+#Discrete:PDF>pro distrubution func>>>Probably found on al possible occurance
+#Contiueous: pmf>prob mass func>>>Small sample and the Possible occurance 
+
+#PDF>>
+#binomial:binomial outcomes
+#Poison: Suitabke for count
+#Negetive Binomial:Robust then piison
+
+
+#PMF>>
+#normal Distribution>>>mean = median=Mode
+#Thumb Rule ..68% data witin 1 SD..95 % in 2Sigma..99.7 in 3 sigma..of the mean
+###################################################################################################################################################Normal Distribution##########################################
+##############################################################################################################################
+
+
+#Create 1000 random numbers which are normally distribured arouung mean 30 with a SD 3
+count=1000
+mean=30
+sd=3
+
+x<-rnorm(count,mean,sd)
+hist(x)
+
+
+data("ToothGrowth")
+sample= ToothGrowth
+head(sample)
+str(sample)
+
+hist(sample$len)
+#no clear indication
+#I can do shapiro.test()
+shapiro.test(sample$len)
+# p value  0.1>0.05 Accept H0: data is normally distributed
+
+qqnorm(sample$len)
+qqline(sample$len)
+#QQline never works alone.. So select qqplot and qq line both command together
+
+
+
+library(ggplot2)
+
+
+```
+```{r}
+###################################################################################################################################################Std Normal Distribution##########################################
+##############################################################################################################################
+#Mean=0 and Sigma=1 >>>Std normal Distribution>>z distribution
+#z= (x-mu)/sd
+#When Sample size >30
+#When Sample size <30...then we will use t-Distribution...more fatter tails
+#Degree of freedom = count-1
+
+#CI Calculation..
+data("ToothGrowth")
+sample= ToothGrowth
+head(sample)
+str(sample)
+n=nrow(sample)
+sd=sd(sample$len)
+se=sd/sqrt(n)#Standard error
+sd
+se
+
+
+zval=qnorm(.975)#>>>alpha/2=.25>>>alpha=.5>>>95% CI
+zval# This is my z-score
+
+#Margin of error
+moe=zval*se
+moe
+
+xbar=mean(sample$len)
+
+xbar+c(-moe,moe)#95% CI
+
+############T Distri
+
+n=length(sample$len)
+df=n-1
+df
+tval=qt(.975,df)# t-score#>>>alpha/2=.25>>>alpha=.5>>>95% CI
+moe= se*tval
+
+xbar=mean(sample$len)
+
+xbar+c(-moe,moe)#95% CI
+
+
+#Do it in r command
+t.test(sample$len)#By default 95%CI
+t.test(sample$len,conf.level = 0.9)#90%CI
+```
+
+```{r}
+###################################################################################################################################################Hypothesis testing###################################################
+#############################################################################################################
+######################################## t-Test############################################################
+#T-test  examines if the difference in means  is significant or not
+data("ToothGrowth")
+sample= ToothGrowth
+head(sample)
+str(sample)
+
+hist(sample$len)
+shapiro.test(sample$len)
+#pvalue=0.1>0.05>>>Accept H0= data is normally distributed
+library(ggplot2)
+qplot(supp,len,data=sample,xlab="Suppliement",ylab="Tooth Length", main="Tooth Growth VS Doses",color=supp)+geom_boxplot()
+mean(sample$len)
+#One sided t-test
+#Test to check If the mean is a certain number 
+#H0: True Value of mean =18
+t.test(sample$len,mu=18)#Test null hypo
+#p value =0.41>0.05..Accept the null Hypo>>>Means mea is 18
+
+#We can test whether its greater than a particular value
+t.test(sample$len,alternative="greater",mu=3)# Test alternative hypo
+
+t.test(sample$len,alternative="less",mu=3)#test alternatve hypo
+#P value >0.05...so reject the alternative hypo
+
+#####Independent two group t-test
+#Testthe difference in mean
+#h0: No difference of mean bet two groups.
+#Lets Split data Sets according to Suppliments
+oj = sample$len[sample$supp=="OJ"]
+vc=  sample$len[sample$supp=="VC"]
+
+t.test(oj,vc,paired=F,var.equal=F,conf.level = .95)
+#p value0.06>0.05...Accept H0>>>no diff in population mean of two vars OJ & VC
+#var.equal=F>>>variances of the datasets are not equal
+#paired=F>>>data taken randomly...not in paired ways
+
+
+t.test(oj,vc,alternative = "greater",paired=F)
+#p value <0.05..reject Null....
+
+t.test(oj,vc,paired=T,var.equal=F,conf.level = .95)# Test assuming its paired value
+#Reject h0
+
+
+```
+
+```{r}
+###########################################################################################################################################Non-parametric alternatives of t-test#########################################
+#############################################################################################################
+data(CO2)
+sample=CO2
+head(sample)
+str(sample)
+
+#normality test
+hist(sample$uptake)
+#Result not prety convincing that the data has normal distribution
+shapiro.test(sample$uptake)
+#reject h0: that data is normal as p<<0.05
+
+
+#Mann-Whitny U test:unpaired data
+#compare uptake for chilled and non-chilled
+#independent sample
+chil_uptake=sample$uptake[sample$Treatment=="chilled"]
+non_chil_uptake=sample$uptake[sample$Treatment=="nonchilled"]
+#Now test
+wilcox.test(chil_uptake,non_chil_uptake)
+#p<<0.05 hence reject null hypo that two variable are come from same populations
+
+
+# We dont need to create table  we can write below command,
+wilcox.test(sample$uptake~sample$Treatment)#(numerical,factor)
+#same result without creating table.
+
+
+
+
+#Wilcox on Single-Ranked Test:paired data
+library(MASS)
+head(immer)
+str(immer)
+
+#Findout the dependency of wheat yeild in 1931(Y1) &1932(Y2)
+wilcox.test(immer$Y1,immer$Y2,paired = T)
+#p value is <<<0.05  reject null hypo. No asssociation of two data
+
+```
+```{r}
+###################################################################################################################################################One Way Annova######################################################
+#############################################################################################################
+#Extension of independent two sample t-test
+#Compare mean when variable more than two
+#Data is organised in to 2+ more  groups in single grouping
+#Variables also called factor grouping
+
+data("PlantGrowth")
+sample=PlantGrowth
+head(sample)
+str(sample)
+#See the factor have 3 groups
+levels(sample$group)
+#See which are 3 factors
+
+
+
+#Package upload
+#install.packages("ggpubr")
+library(ggpubr)
+
+
+
+#Ploting of data
+ggboxplot(sample,x="group",y="weight",color="group",palette = c("blue" ,"red" ,"green"),order = c("ctrl", "trt1", "trt2"),ylab="Weight",xlab="Treatment")
+
+#Can see in graph that, means are different? Also see the outlier for trt1
+
+#We did it graphically...lets us see it statistically
+md=aov(weight~group,data=sample)
+md
+summary(md)
+#p value .01<.05  So three variables are different...but which are the groups are significantly different??
+#post hoc test
+t=TukeyHSD(md)
+t
+plot(t)
+
+#Pairwise t-test
+pairwise.t.test(sample$weight,sample$group,p.adjust.method = "BH")
+#What is "BH"
+
+#condition of one way anova
+
+##Check the homogenity of variance assumptions
+plot(md,1)
+#Line is allmost horizental...so somehow Homegenity of the variances somehow met 
+
+#Normality of residuals
+plot(md,2)
+
+aov_residuals=residuals(object = md)
+shapiro.test(aov_residuals)
+#Accept H0: Error is normaly Distributed
+
+```
+```{r}
+##############################################################################################################################################Non-Parametric One Way Annova##############################################
+#############################################################################################################
+#If the condition of normality of residuals is not met,
+# We implement Kruskal-Wallis rank sum Test
+kruskal.test(weight~group,data=sample)
+#p value <005...reject null hypo.....on of the three group is significantly different from others
+#lets use Pairwise wilcox test
+pairwise.wilcox.test(sample$weight,sample$group,p.adjust.method = "BH")
+
+#Where homegenity of variance assumption is violated
+oneway.test(sample$weight~sample$group)
+
+```
+```{r}
+########################################################################################################################################################### Two Way Annova##############################################
+#############################################################################################################
+#Evaluate Simulteneously the effect of two grouping variables
+#2 Factor variables on a response variable
+
+
+##H0:Respnse mean for all factors levels are equal.
+
+####Data loading
+data("ToothGrowth")
+df= ToothGrowth
+head(df)
+str(df)
+#levels(df$dose)
+unique(df$dose)
+#df$dose=factor(df$dose,levels=c(0.5,1.0,2.0),lebels=c("D0.5", "D1" ,"D2"))
+as.factor(df$dose)
+levels(df$dose)
+
+
+#plotting
+boxplot(len~supp*dose,data=df,frame=F,col=c("red","blue"),ylab="Toothlength")
+
+#See if the tooth length Depends on Supp and dose statistically
+#two factor variables are independent
+md1<- aov(len~supp+dose,data=df) # i assumed Supp & dose are independent, So #used   supp+dose
+summary(md1)
+#both the p value is <0.05>>>So reject H0:
+#H0: Mean tooth length of the two variables supp & dose are not equal
+
+
+
+#Test two variable may have some synergistic eff3ct
+md2<- aov(len~supp*dose,data=df) # i assumed Supp & dose may have some affect, #So used   supp*dose
+summary(md2)
+#So p value dose::Supp >>> 0.02>0.05...Accept H0...May have affect
+#So effect of Dose & Supp are statistically significant
+#relationship of Dose & Tooth length iks also dependent on Supp
+
+
+#Now lets test Which Dose groups are different
+# TukeyHSD(md2,which = "dose")
+
+#See why its not working
+
+#Lets do paiwise t test
+pairwise.t.test(df$len,df$dose,p.adjust.method = "BH")
+
+
+#Testing when we have unequal sample numbers
+mya=aov(len~supp*dose,data=df)# Normal Anova test we do for equal sample numbers
+#Now we wil use Type-III Sum of Suqares As we assume unequal numbers per group
+library(car)# This package is required for Anova function
+Anova(mya,type="III")
+
+
+
+#Conditions for two way Anova
+#Test homogeneity of the variance assumption
+plot(md2,1)#Not homogeneous
+
+##Test normality of residuals
+plot(md2,2)
+```
+
+
+```{r}
+#Stat test will not be able to determine true diff if the sample size is too small
+#Sample size choice
+#install.packages("pwr")
+library(pwr)
+?pwr.t.test
+#pwr.t.test(n=,d=,sig.level=,power=,type=c("two.sample","one sample","paired"))
+#n:Number of observations (per sample)
+#d:Effect size (Cohen's d) - difference between the means divided by the pooled standard #deviation
+#Cohen'suggested that, da values of .2,.5,.8 represents small,medium&large effect
+#sig.level:Significance level (Type I error probability) power Power of test (1 minus Type II #error probability)
+#type	:Type of t test : one- two- or paired-samples
+
+#######
+#Power that a t-test has for detecting a differece as large as 1 unit from zero ifthe sd is 3
+#consider sample size=50 and ci=95
+power.t.test(50,1,3,.05,NULL,type="one.sample")
+#We have 63% chance to detect an effect that size
+
+
+
+#How large a sample size should be to have a power of .8
+#for detecting a difference as large as 1 unit and sd as 3 unit
+power.t.test(NULL,1,3,0.05,.8,type="one.sample")
+#Sample size should be 73
+
+
+
+#lets examine two.sample problem
+
+power.t.test(NULL,1,3,0.05,.8)# by default the type is two.sample
+#sample size=143...n is each group
+
+#How much the difference should be to detct 80%power with 50 Subjects per group.
+power.t.test(50,NULL,3,.05,.8)
+#d-1.69
+
+
+####################Anova
+#One way anova to compare 4 grps
+#Need toknow sample size
+#.80 when effect is moderate.25
+pwr.anova.test(NULL,k=4,f=.25,sig.level = .05,power = .8)
+#n=45
+```
+
+
+
+
+
+

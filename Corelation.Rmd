@@ -1,0 +1,116 @@
+---
+title: "Corelation"
+author: "Rajesh K Pahari"
+date: "February 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+############################################################################################################
+################################################CoRelation################################################
+############################################################################################################
+#Co-relation: Dimension Free measureof two random variables how associated>>calculated for numerical vars
+#Range: [-1,1]>>>-1 perfectly negetive relation ..1 Perfect positive relation..0 no relation.
+#Paremetric co-relation: Pearson's corelation>>.Applied on normally distributed data
+#non-parametric:Spereman's Rank &Kendlal Tau
+# Corelation dolen't mean Causation>>>>X& y are corelated ..thiks doesn't mean x causes y or y causes x
+
+#Lets read mtcars
+data(mtcars)
+str(mtcars)
+head(mtcars)
+
+
+library(ggplot2)
+pl=qplot(mpg,wt,data=mtcars,xlab="Miles/Gallon",ylab="Weight",main="Miles per gallon VS Weight")
+pl
+
+
+pl2=qplot(Petal.Length,Petal.Width,data=iris,xlab="Petal Length",ylab="Petal Width",main="Petal Length VS Petal Width")
+pl2
+
+library(gridExtra)
+grid.arrange(pl,pl2,ncol=2)
+grid.arrange(pl,pl2,nrow=2)
+
+
+h1=hist(mtcars$mpg)
+h2=hist(mtcars$wt)
+
+#from the graph its not well understood ifthe data is normally distributed
+#Shapiro-Wilk Normality test 
+#H0: Data is ormally distributed
+shapiro.test(mtcars$mpg)
+#P value 0.1>0.05 ##So we will Accept null Hypo.>>.data is normally distributed
+
+shapiro.test(mtcars$wt)
+#0.09>0.05 Accept null Hypo
+
+
+#Corelation
+cor(mtcars$mpg,mtcars$wt)
+#-0.8 perfectly negetive corelation
+cor(iris$Petal.Length,iris$Petal.Width)
+#Positive corelation
+
+#Wait how this corelation found...?? Using pearson method...
+cor(mtcars$mpg,mtcars$wt,method ="pearson")
+#Same result..
+
+#IF my data contains NA thnen use below:
+cor(mtcars$mpg,mtcars$wt,method ="pearson",use="complete.obs")
+
+#Is my corelation Statistically significant??
+cor.test(mtcars$mpg,mtcars$wt)
+
+
+#Vasually see corelation
+#install.packages("corrplot")
+library(corrplot)
+corr1<-cor(mtcars)  #Calculates relation between multiple variables
+corr1
+corrplot(corr1)
+corrplot(corr1,method = "color")
+
+#Another Example
+qplot(iris$Petal.Length,iris$Petal.Width,data=iris,col="Species",xlab="Petal length",ylab="Petal width",main="Lngth VS Width")
+cor(iris$Petal.Length,iris$Petal.Width)
+
+shapiro.test(iris$Petal.Length)
+#P value <0.05>>.reject H0: Data is normally distributed.
+#So what we calculated using above cor method which uses by default Pearson method is not correct
+#Lets use different Method Spearmank's rank method
+cor(iris$Petal.Length,iris$Petal.Width,method="spearman")#Most commonly used when data is not normally distri
+#Another Method
+cor(iris$Petal.Length,iris$Petal.Width,method="kendall")#Not widely used
+
+
+
+```
+
+
+
+

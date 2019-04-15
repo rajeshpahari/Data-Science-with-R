@@ -1,0 +1,542 @@
+---
+title: "Supervied Learning"
+author: "Rajesh K Pahari"
+date: "March 8, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+##Pre-Processing for Supervised learning - Regression
+```{r}
+#Data pre-processing for machine learning
+pa<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section17\\Pres_abs.csv")
+
+#Data observations
+head(pa)
+summary(pa)
+str(pa)
+
+#load library for machine learnings
+#install.packages("caret" )
+library(caret)
+set.seed(1)#Pseudo repeatability
+train.index<-createDataPartition(pa$pb,#create Partition for pb column-our index-our response var
+                                 p=0.75,# 75% data will be used for training
+                                 list=FALSE,
+                                 times=1)
+#I have cretaed train index..based on which i can devide train & testdata
+
+#Training data
+train.data<-pa[train.index,] #Train data will come from pa..75% of PA data
+test.data<-pa[-train.index]
+
+#check the data
+head(train.data)
+
+```
+#our data is not ready for regression
+
+
+
+
+##Generalize Additive Model[GAM]
+```{r}
+##Generalization to incorporate nonlinear forms of the predictors
+## relating our nonlinear predictors to the expected value,
+# irrespective of link function may be appropriate
+##account for the non-linearity bw X and Y
+
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+head(eco)
+library(car)
+scatterplotMatrix(eco,
+                  diagonal="histogram",
+                  smooth=FALSE)
+
+head(eco)
+library(mgcv)
+library(gam)
+
+mod_lm = gam(BiocapacityT ~ Population+HDI+Grazing.Footprint+Carbon.Footprint+
+                Cropland+Forest.Land+Urban.Land+GDP, data=eco)
+
+summary(mod_lm)
+
+
+
+#fit an actual generalized additive model using 
+#the same cubic spline as our basis
+
+mod_lm2 <- gam(BiocapacityT ~ s(Grazing.Footprint)+s(Cropland)+s(Forest.Land), data=eco)
+#s is the smooth term
+# output is separated into parametric and smooth/nonparametric parts
+summary(mod_lm2)
+
+x=lm(BiocapacityT ~ Grazing.Footprint+Cropland+Forest.Land, data=eco)
+
+summary(x)
+
+#anova(mod_lm2, x, test="Chisq")# incorporating nonlinear effects improves the model.
+
+#Concurvity refers to the generalization of collinearity to the GAM setting. 
+#In this case it refers to the situation where a smooth term can be 
+#approximated by some combination of the others. 
+# Can lead to unstable estimates
+#concurvity(mod_lm2)
+
+#mod_gam3 <- gam(BiocapacityT ~ te(Grazing.Footprint, Cropland,Forest.Land), data=eco)
+#summary(mod_gam3)
+# instead of splines specify tensor product smooth
+
+#vis.gam(mod_gam3, type='response', plot.type='persp',
+#             phi=30, theta=30,n.grid=500, border=NA)
+
+#GF & croplandalone does not necessarily guarantee higher Biocapacity
+
+
+library(caret)
+
+#b = train(BiocapacityT ~ ., 
+#           data = eco,
+#           method = "gam",
+#           trControl = trainControl(method = "LOOCV", number = 1, repeats =  1),
+#           tuneGrid = data.frame(method = "GCV.Cp", select = FALSE)
+#)
+
+#print(b)
+#summary(b$finalModel)
+
+
+```
+##BGAM- Boosted generalized additiveModel
+
+```{r}
+##Deals with issue of concurvity and colinearity
+#has more ML centgric approach
+#Doesn't produce co-efficient estimates
+library(caret)
+#install.packages("mboost")
+library(mboost)
+
+
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+head(eco)
+
+#gamboost fittings
+set.seed(123)
+
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+
+
+fitcontrol<-trainControl(method='cv', number=10)#10 fold cross validation
+
+grid<-expand.grid(.mstop=seq(100,1000,100),.prune=c(5))
+#names(eco)
+formula<- BiocapacityT~Population+HDI+Grazing.Footprint+Carbon.Footprint+Cropland+Forest.Land+Urban.Land+GDP
+
+fit1 = train(formula, data=trainData, method = 'gamboost', trControl=fitcontrol,tuneGrid=grid,metric='RMSE',maximize=FALSE)
+
+fit1 
+
+v=varImp(fit1,scale=TRUE)
+plot(v)
+#Forest land have the most explanatory power
+
+#Testing part
+p1=predict(fit1,newdata = testData)
+p= as.data.frame(p1)
+
+test=as.data.frame(testData$BiocapacityT)
+y=cbind(test,p)
+colnames(y)=c("BiocapacityT","Test")
+head(y)
+
+#lets see if te predicted value is corelated
+cor.test(y$BiocapacityT,y$Test)
+# see p value and cor value..both are 93% corelated
+
+library(Metrics)
+rmse(y$BiocapacityT,y$Test)
+#root mean square error is 2.58 between orginal & predicted data
+
+```
+##CART-Classification and regression Tree
+```{r}
+#contineous response y: Regression tree
+#RTs do not apply a global model (unlike  OLS)
+#Trees try to partition data space into small enough part
+#where we can apply a simple different model on each part
+
+
+#High non-linearity & complex relationship between dependent & independent variable 
+#A tree model will outperform a classical regression
+
+library(caret)
+library(rpart) #Regression and classification package
+eco=eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+head(eco)
+
+set.seed(10)
+
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+names(eco)
+
+fit=rpart(BiocapacityT~.,data=trainData,control=rpart.control(minsplit=6))
+#My data will be parted in six different trees...control variableis specific
+printcp(fit)
+#Most important predictor is in result
+plotcp(fit)
+#error reduced significanty in 4 split..so no more split
+
+
+summary(fit)
+
+par(mfrow=c(1,2))
+rsq.rpart(fit)#visualise cross validation result
+
+#plot tree
+plot(fit,uniform = TRUE, main="Regression Tree For Biocapacity")
+text(fit,use.n = TRUE,all=TRUE,cex=.8)
+
+#Prune the tree..shorten the tree to make it more compact
+#Avoid overfitting to the training data
+pfit<-prune(fit,cp=0.016)
+
+#Plot the pruned tree
+plot(pfit,uniform = TRUE, main="Regression Tree For Biocapacity")
+text(pfit,use.n = TRUE,all=TRUE,cex=.8)
+
+
+#Testig
+p=predict(fit,newdata = testData)
+p=as.data.frame(p)
+
+
+final=cbind(testData$BiocapacityT,p)
+colnames(final)= c("Original","Predicted")
+head(final)
+
+
+cor.test(final$Original,final$Predicted)
+#98 % co related
+
+
+#what is the error
+library(Metrics)
+rmse(final$Original,final$Predicted)
+```
+##Conditionl interface Tree-R
+```{r}
+#no need of tree pruning
+
+# We will work on biocap data
+#install.packages("party")
+library(caret)
+library(party)
+
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+names(eco)
+
+
+#preperation of training and test data
+
+set.seed(10)
+
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+names(eco)
+
+
+fitc= train(BiocapacityT~.,data=trainData,method='ctree',tuneGrid=expand.grid(mincriterion=0.95))
+
+ctreevarIMP=varImp(fitc)  #varImp is from caret
+
+ctreevarIMP
+
+plot(ctreevarIMP)
+
+#Use party package to visualize the tree
+library(party)
+
+fit2=ctree(BiocapacityT~.,data=trainData)
+
+plot(fit2,main="Conditional Inference Tree For Biocapacity")
+#Lets test now...
+
+print(fit2)
+
+
+#How we will genralize
+
+p= predict(fitc,newdata=testData)
+p=as.data.frame(p)
+
+final=cbind(testData$BiocapacityT,p)
+colnames(final)=c("original","predict")
+head(final)
+cor.test(final$original,final$predict)
+#69 % corelation explained
+
+library(Metrics)
+
+rmse(final$original,final$predict)
+#conclusion ..tree is rich ..not pruned..but result is poor...may be due to over fitting with so much info
+
+```
+##MARS-Multivariate adoptive regression Splines
+```{r}
+#non  parametric regression:An extension of linear models
+#Automatically models non-linearities & interactions between variables
+#patended but not open source..can be utilised using library earth
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+head(eco)
+
+#gameboost fiiting
+set.seed(10)
+
+#data preperation
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+names(eco)
+
+#install.packages("earth")
+library(earth)
+#regression
+modfit=earth(BiocapacityT~.,data=trainData)
+
+modfit
+#order of omportance for predictor variables
+#GCV:Generalised cross validations to compare the performance of the model subsets #in order to choose the best subset
+#Lower values of GCV are better
+#form of regularization
+evimp(modfit)
+
+
+#How we will genralize
+
+p= predict(modfit,newdata=testData)
+p=as.data.frame(p)
+
+final=cbind(testData$BiocapacityT,p)
+colnames(final)=c("original","predict")
+head(final)
+cor.test(final$original,final$predict)
+#99 % corelation explained
+
+library(Metrics)
+
+rmse(final$original,final$predict)
+
+#for robustness lets do it with caret package
+fitcontrol=trainControl(method = "cv",number=10)#10 fold cross validation
+
+modfit2=train(BiocapacityT~.,data=trainData,method="earth",trControl=fitcontrol)
+summary(modfit2)
+
+#Same result..but more detail result...
+
+#MARS starts with a model which consists of just the intercepts which is the mean of #response values
+#Then MARS repeatedly adds the basis function in pairs to the model
+#At each step it finds the pair of basis functions that gives the maximum
+
+
+
+######Testing
+v=varImp(modfit2)
+print(v)
+plot(v)
+p= predict(modfit2,newdata=testData)
+p=as.data.frame(p)
+
+final=cbind(testData$BiocapacityT,p)
+colnames(final)=c("original","predict")
+head(final)
+cor.test(final$original,final$predict)
+#99 % corelation explained
+
+library(Metrics)
+
+rmse(final$original,final$predict)
+```
+##Random Forest regression-a tree based ML approach
+```{r}
+library(caret)
+library(randomForest)
+library(Metrics)
+
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+names(eco)
+
+#gameboost fiiting
+set.seed(10)
+
+#data preperation
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+#names(eco)
+
+#Regression parameter preperation
+trControl<-trainControl(method="cv",number=10,allowParallel = TRUE)
+
+#Regression
+modfit<-train(BiocapacityT~.,data=trainData,method="rf",prox=FALSE,trControl=trControl,imporatance=TRUE)
+#imporatnce of different predictor.
+
+
+#####Testing
+p=predict(modfit,newdata = testData)
+p=as.data.frame(p)
+
+final = cbind(testData$BiocapacityT,p)
+colnames(final)=c("Orig","Predict")
+head(final)
+
+#co-relation between Original and Predicted values
+cor.test(final$Orig,final$Predict)
+# corelation efficient teds to 1
+
+rmse(final$Orig,final$Predict)
+library(caret)
+#varImp(modfit)
+######With Package Random forest#######
+library(randomForest)
+names(eco)
+erf<-randomForest(BiocapacityT~.,eco)
+VI_F=importance(erf)
+VI_F
+plot(VI_F)
+
+partialPlot(erf,eco,GDP,BiocapacityT)
+
+#This is also called as marginal response plot
+#direction of relationship btwBiocapacity & forestland
+partialPlot(erf,eco,Forest.Land,BiocapacityT)
+#lets see other relation
+partialPlot(erf,eco,Population,BiocapacityT)
+#if population is high..biocapacity will be low.
+
+```
+
+##GBM[Gradient Boosting Machine] regression
+
+```{r}
+library(caret)
+
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+names(eco)
+
+#gameboost fiiting
+set.seed(10)
+
+#data preperation
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+#names(eco)
+
+## We will implement Caret version of GBM which is more intutive
+trControl=trainControl(method="cv",number=10)
+
+fit<-train(BiocapacityT~.,data=trainData,method="gbm",trControl=trControl,verbose=FALSE)
+
+print(fit)
+#Automatically tunes the parameter when we use Caret method of GBM
+#but in GBM we have to use parameters like:
+#n.trees-Boosting interaction
+#interaction.depth(Max tree depth)
+#shrinkage
+
+
+
+
+#####Testing
+p=predict(fit,newdata = testData)
+p=as.data.frame(p)
+
+final = cbind(testData$BiocapacityT,p)
+colnames(final)=c("Orig","Predict")
+head(final)
+
+#co-relation between Original and Predicted values
+cor.test(final$Orig,final$Predict)
+# corelation efficient teds to .5 ..quite low...remember RF model works fine
+
+rmse(final$Orig,final$Predict)
+library(caret)
+varImp(fit) 
+#not working why ????
+
+```
+
+##Model Selection in R
+```{r}
+library(caret)
+
+
+eco<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section18\\biocap.csv")
+
+names(eco)
+
+#gameboost fiiting
+set.seed(10)
+
+#data preperation
+Train_index<-createDataPartition(eco$BiocapacityT,p=0.75,list=F)
+trainData=eco[Train_index,]#75% data for training
+testData=eco[-Train_index,]#25% data for testing
+#names(eco)
+
+## We will implement Caret version of GBM which is more intutive
+trControl=trainControl(method="cv",number=10)
+
+#names(eco)
+###############Run different kind of ML models########
+gbmTrain=train(BiocapacityT~.,data=trainData,method="gbm",trControl=trControl)
+rfTrain=train(BiocapacityT~.,data=trainData,method="rf",trControl=trControl)
+earthTrain=train(BiocapacityT~.,data=trainData,method="earth",trControl=trControl)
+
+#Compare the training models using resample
+results<-resamples(list(earth=earthTrain,GBM=gbmTrain,rf=rfTrain))
+
+summary(results)
+bwplot(results)
+
+```
+
+

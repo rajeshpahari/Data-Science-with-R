@@ -1,0 +1,165 @@
+---
+title: "Hierachical Clustering"
+author: "Rajesh K Pahari"
+date: "March 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+##Hierachical clustering< Agglomerative[AGNES]-bottom -up + Devisive[DIANA]- Top down
+
+```{r}
+#Heirarchical clusstering in R
+library(fclust)
+library(cluster)
+  
+head(unemployment)
+
+df<-scale(unemployment)
+head(df)
+
+
+#Agglomerative heirarchical clustering
+#dissimilarity matrix
+d=dist(df,method = "euclidean")
+
+library(cluster)
+
+
+#heirarchical clustering using complete linkage
+hc1=hclust(d,method = "complete")
+
+#plot dendrogram
+plot(hc1,cex=0.6,hang=-1)
+
+
+#compute with Agnes
+hc2=agnes(df,method="complete")
+
+hc2$ac#Agglomerative coeff
+
+hc3=agnes(df,method="ward")
+pltree(hc3,cex=0.6,hang=-1, main="Dendro")
+
+hc3$ac#higehr value
+
+#Devisive HC
+hc4=diana(df)
+hc4$dc
+pltree(hc4,cex=0.6,hang=-1, main="Dendro")
+
+
+#identify the sub-groups
+#Wards' Method
+hc5<-hclust(d,method = "ward.D2")
+
+
+#cut the tree into 4 groups
+sub_grp<-cutree(hc5,k=4)  #for 4 cluster
+
+table(sub_grp)
+
+library(tidyverse)
+unemployment%>%mutate(cluster=sub_grp)%>%head
+
+plot(hc5,cex=0.5)
+rect.hclust(hc5,k=4,border = 2:5)
+library(factoextra)
+fviz_cluster(list(data=df,cluster=sub_grp))
+#Determine optimal cluster number
+fviz_nbclust(df,FUN=hcut,method = "silhouette")
+fviz_nbclust(df,FUN=hcut,method = "wss")
+```
+#EM[Exception Maximize Algorithm]-Unsupervised learning
+```{r}
+#iterative
+#no of cluster decided by algorithm
+#each cluster K is centered at mean
+#increased density near the point mean
+
+library(mclust)
+require(fclust)
+
+data("unemployment")
+head(unemployment)
+
+x=scale(unemployment)
+
+mc=Mclust(x)
+summary(mc)
+mc$modelName #Which Model has been used
+mc$G  #Optimal number of cluster
+head(mc$classification)#classifications
+
+library(factoextra)
+
+#BIC value used to choose optimal cluster
+fviz_mclust(mc,"BIC",palette="jco")#various model used to find optimal cluster
+#classification plot
+fviz_cluster(mc,"classification",geom="point",pointsize=0.5,palette="jco")
+#Classification uncertinity
+fviz_mclust(mc, "uncertainty",palette="jco")
+
+```
+##DBscan Clustering
+```{r}
+#unlike k-means
+##DBscan doesn't require the user to specify the number of the clusters
+
+#install.packages("dbscan")
+library(dbscan)
+
+data("iris")
+x<-as.matrix(iris[,1:4])#seprate numerical variable and make a matrix
+
+head(x)
+
+#Select the epsilon or eps values
+db<-dbscan(x,eps=.4,minPts = 4)
+db
+
+
+pairs(x, col=db$cluster+1L)
+
+#Bt how to get optimal EPS value 
+#lets use K-nearest neighbor distance in a matrix points
+dbscan::kNNdistplot(x,k=5)
+abline(h=0.15,lty=2)
+
+
+#visujalization of cluster
+res.fpc<-fpc::dbscan(x,eps=.4,MinPts = 4)
+#dbscan package
+res.db<-dbscan::dbscan(x,.4,4)
+require(fpc)
+require(factoextra)
+
+fviz_cluster(res.fpc,x,geom="point")
+
+
+
+```
+

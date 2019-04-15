@@ -1,0 +1,207 @@
+---
+title: "Supervised Learning classification"
+author: "Rajesh K Pahari"
+date: "March 11, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+##Logistic regression for binary response variable
+
+```{r}
+voice<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section19\\voice.csv")
+library(caret)
+
+head(voice)
+str(voice)
+summary(voice)
+
+set.seed(99)
+#Data Prep
+Train_index<-createDataPartition(voice$label,p=0.75,list=FALSE)
+trainData=voice[Train_index,]#Training Data
+testData=voice[-Train_index,]#Testing Data
+
+#Define training control
+trControl=trainControl(method="cv",number=10)#10 fold cross validation
+
+mod_fit<-train(label~.,data=trainData,method="glm",trControl=trControl,family="binomial")
+
+summary(mod_fit)
+colnames(voice)
+mod_fit2<-train(label~Q25+Q75+sp.ent+sfm+meanfun+minfun+mode,data=trainData,method="glm",family="binomial")
+summary(mod_fit2)
+
+#Use exponential function to calculate the odds ratios for each predictors
+exp(coef(mod_fit2$finalModel))
+#Result interpretation:
+#unit increase in mode =odds of being a male will increase  by 10%
+
+
+###Testing
+p1<-predict(mod_fit2,newdata = testData)
+head(p1)
+p2<-predict(mod_fit2,newdata = testData,type="prob")
+head(p2)
+#Accuracy of the model
+accuracy<-table(p1,testData[,"label"])
+
+sum(diag(accuracy))/sum(accuracy)
+#Overall accuracy is 96%
+varImp(mod_fit2)
+
+#No exact equivalent of R-Sqr is avilable like LM
+#the Mcfadden R-Sqr index can be used to asses the model fit
+#to do that we have to create different model
+mod_fit2a<-glm(label~Q25+Q75+sp.ent+sfm+meanfun+minfun+mode,data=trainData,family="binomial")
+#install.packages("pscl")
+library(pscl)
+pR2(mod_fit2a)
+#87% variance in response variable
+```
+##Binary classifier with PCA
+```{r}
+#Use PCA with Binary classifier
+##unco-related PCs
+
+require(caret)
+tumor<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\Sentimental-Analysis_R-master\\Sentimental-Analysis_R-master\\cancer_tumor.csv")
+
+#predict if the tumor is malignant(M) or benign(B)
+head(tumor)
+
+str(tumor)
+
+#Prepare working data....drop unnecessary data
+drops=c("id","X")
+
+df<-tumor[,!(names(tumor)%in%drops)]
+head(df)
+names(df)
+table(df$diagnosis)
+prop.table(table(df$diagnosis))
+
+#Is there any multi co linearity in my predictors?
+corr_mat<-cor(df[,2:ncol(df)])#predictors starts from col -2
+library(corrplot)
+corrplot(corr_mat)
+#There are strong co-relations for few variables
+#Principal Components are uncorelated
+
+pcav<-prcomp(df[,2:ncol(df)],center = TRUE,scale=TRUE)
+# we do centering & Scaling as well
+plot(pcav,type="l")
+
+summary(pcav)
+print(pcav)
+
+pcf_df<-as.data.frame(pcav$x)
+
+pcf_df
+
+library(ggplot2)
+
+ggplot(pcf_df,aes(x=PC1,y=PC2,col=df$diagnosis))+geom_point()
+#There is seprability
+
+##########classification
+
+set.seed(99)
+
+#Data Prep
+id<-createDataPartition(df$diagnosis,p=0.75,list=FALSE)
+head(id)
+training=df[id,]#Training Data
+testing=df[-id,]#Testing Data
+names(training)
+head(testing)
+#Define training control
+fitControl=trainControl(method="cv",number=10,   #10 fold cross validation
+                        preProcOptions = list(thresh=.95),
+                        classProbs = TRUE,
+                        summaryFunction = twoClassSummary)
+
+#LDA as classifier
+fit_1<-train(diagnosis~.,
+             training,
+             method='lda',
+             metric='ROC',
+             preProcess=c("center","scale","pca"),
+             tuneLength=10,
+             trace=FALSE,
+             trControl=fitControl)
+
+pred_1=predict(fit_1,newdata = testing)
+
+
+cm_lda=confusionMatrix(pred_1,testing$diagnosis,positive="M")
+
+cm_lda
+#nayve Byase Model: used for both binaly and multiclass classification
+fit_1<-train(diagnosis~.,
+             training,
+             method='nb',
+             metric='ROC',
+             preProcess=c("center","scale","pca"),
+             tuneLength=10,
+             trace=FALSE,
+             trControl=fitControl)
+
+pred_1=predict(fit_1,newdata = testing)
+
+
+cm_lda=confusionMatrix(pred_1,testing$diagnosis,positive="M")
+
+cm_lda
+
+
+
+```
+##Obtain Binary classification Accuracy Matrix
+```{r}
+library(caret)
+library(mlbench)
+
+
+data("Sonar")
+
+head(Sonar)
+#unique(Sonar$Class)
+#Training and test data prep....60% & 40%
+tr<-sample(nrow(Sonar),round(nrow(Sonar)*.6))
+
+trainData<-Sonar[tr,]
+testData<-Sonar[-tr,]
+
+model<-glm(Class~.,data=trainData,family = "binomial")
+p<- predict(model,testData,type="response")
+summary(p)
+cl<-ifelse(p>0.5,"M","R")
+table(cl,testData$Class)
+
+confusionMatrix(cl,testData$Class)
+```
+

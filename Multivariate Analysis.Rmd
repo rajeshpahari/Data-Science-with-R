@@ -1,0 +1,282 @@
+---
+title: "Multivariate Analysis"
+author: "Rajesh K Pahari"
+date: "March 6, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+##Linear Discriminant Analysis[LDA]
+```{r}
+#Linear Classifier
+#Linear combination of fetures to Seperate the categorical Variables
+#Normally ditributed predictors & equality of covariance
+
+data(iris)
+head(iris)
+
+library(MASS)
+ldal<-lda(Species~.,data=iris)
+ldal
+
+
+#See the result
+#proportion of Trace that is the percentage seperation achived by each discriminant function
+lda<- lda(Species~.,data=iris,
+          prior=c(1,1,1)/3)# prior probablity of Species
+
+plot(lda)
+
+plda<-predict(object=lda,newdata=iris)
+
+dataset<-data.frame(species=iris[,"Species"],
+                    lda=plda$x)
+head(dataset)
+
+#Seperability is achived by LDA1
+ldahist(data=plda$x[,1],g=iris$Species)
+
+#Seperability is achived by LDA2
+ldahist(data=plda$x[,2],g=iris$Species)
+
+
+library(ggplot2)
+p1<-ggplot(dataset)+geom_point(aes(lda.LD1,lda.LD2,colour=species,shape=species))
+p1
+
+
+#Compare the result with PCA
+pca<-prcomp(iris[,-5],center=T,scale.=T)
+
+df<-data.frame(species=iris[,"Species"],pca=pca$x)
+
+p2<-ggplot(df)+geom_point(aes(pca.PC1,pca.PC2,colour=species,shape=species))
+p2
+
+require(gridExtra)
+grid.arrange(p1,p2,ncol=2)
+
+
+#Genralise:How does lda perform on unseen data
+library(caret)
+validation_index<-createDataPartition(iris$Species,p=0.75,list=F)#75% data we will use for #training
+train=iris[validation_index,]
+#Testing data rest 25%
+test<-iris[-validation_index,]
+
+lda2<-lda(Species~.,data=train,   #See we are using Train data
+          prior=c(1,1,1)/3)
+plot(lda2)
+
+#Predict on test data
+plda2<-predict(object=lda2,newdata=test)
+
+head(plda2$class)
+
+
+confusionMatrix(plda2$class,test$Species)
+#See the accuracy and Kappa...very high...Good Model
+dataset2<-data.frame(species=test[,"Species"],
+                     lda2=plda2$x)
+ggplot(dataset2)+geom_point(aes(lda2.LD1,lda2.LD2,colour=species,shape=species))
+#Species are well sperated.
+
+
+#qda:quantum discreminant analysis
+#Doesn't assume homogeneity of variance-covariance metrices
+
+
+qda2<-qda(Species~.,train,
+          prior=c(1,1,1)/3)
+
+qda2
+
+
+pqda=predict(object=qda2,newdata=test)
+head(pqda$class)
+
+confusionMatrix(pqda$class,test$Species)
+
+#Again the High accurace & High kappa.
+
+```
+##Correspondence Analysis[CA]
+```{r}
+#MVA for examining relationship between variables in a contingency table
+
+
+#Data from: Niemelä et al. (1988)
+#Carabid beetles collected using pitfall traps in fragments of different habitats
+#number of individuals for all species recorded in each of five habitats
+#species in row and habitats in columns
+
+#for mva
+#install.packages("FactoMineR")
+#install.packages("factoextra")
+library(FactoMineR)
+library(factoextra)
+
+?`FactoMineR-package`
+??factoextra
+
+
+x=read.table("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section13\\carabid-beetles-boreal-forest.txt")
+
+attach(x)
+head(x)
+str(x)
+summary(x)
+
+chisq<-chisq.test(x)
+chisq
+#p value <<0.05
+
+resca<-CA(x,graph=F)#correspondence analysis
+print(resca)
+
+summary(resca,dec=2,ncp=2)#2 decimal places
+#Is there a significant dependency between row and columns?
+
+
+#Examine dependencies between row and column by eigen values
+eig<-get_eigenvalue(resca)
+eig<-data.frame(eig)
+
+#totgal Sum of eigen values
+trace<-sum(eig$eigenvalue)
+trace
+
+
+corcoef<-sqrt(trace)
+corcoef#value of 0.2 signifies the significant corelation
+# So there is significant dependencies between rows and columns
+
+
+#How many diemnsions are sufficient for interpretation?
+#look at the eigenvalue table
+eigenvals<-get_eigenvalue(resca)
+head(eigenvals)
+head(round(eigenvals,2))
+
+#variance percent= Axis eigen value /trace
+fviz_screeplot(resca)#visualise
+
+
+#Symetric plot...shows a global pattern with in the data
+#rows and columns profiles simulteneously in a common space
+fviz_ca_biplot(resca)
+
+#look at the rows(Species)
+row<-get_ca_row(resca)
+row
+head(row$contrib)
+head(row$coord)
+
+fviz_contrib(resca,choice="row",axes=1)
+col<-get_ca_col(resca)
+head(col$contrib)
+fviz_contrib(resca,choice="row",axes=1)
+
+fviz_contrib(resca,choice="row",axes=1:2)
+
+fviz_contrib(resca,choice="row",axes=1,top=5)
+
+
+#Contribution of cols/habitates to the CA diemnsion
+col<-get_ca_col(resca)
+head(col$contrib)
+
+
+```
+##NMDS:Non metric multidimensional Scaling
+
+```{r}
+#Visualize similarity
+#place each object in an n-dimensional space such that the netween object distances
+#are preserved as much as possible
+
+head(x)
+xt=t(x)#Transform the row into column
+head(xt)
+
+#ndms
+#install.packages("vegan")
+require(vegan)
+
+example1<-metaMDS(xt,k=2,trymax=100)#We want to visualise with 2 axis
+
+ordiplot(example1,type="n")
+orditorp(example1,display="species",col="red",air=0.01)
+orditorp(example1,display="sites",cex=1.25,air=0.01)
+
+
+#Specify distance algorithm
+example2<-metaMDS(xt,distance="bray",k=2,trymax=100)#We want to visualise with 2 axis
+
+ordiplot(example2,type="n")
+orditorp(example2,display="species",col="red",air=0.01)
+orditorp(example2,display="sites",cex=1.25,air=0.01)
+
+#Doesn't imroved visibility in this cae
+
+
+```
+
+##Manova
+```{r}
+#Multivatiate Anova
+#response variables are multiple
+data("iris")
+head(iris)
+
+#Manova Test
+#works with highly co related variables
+
+res.man<-manova(cbind(Sepal.Length,Petal.Length)~Species,data=iris)
+summary(res.man)
+
+#Look to see which are differing
+summary.aov(res.man)
+#See the result and p values
+#p value Sepla.length<<0.5..no co relation
+#Similar for petal length
+
+
+summary.aov(res.man,test="wilks")# default method is Pillay
+#install.packages("mvnormtest")
+library(mvnormtest)
+#H0:poplulation is normally distrubuted
+num<-iris[,1:4]
+
+mshapiro.test(t(num))
+#p value<<0.05..reject Null Hypothesis
+
+
+
+
+```
+

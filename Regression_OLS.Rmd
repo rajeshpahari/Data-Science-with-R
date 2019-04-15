@@ -1,0 +1,487 @@
+---
+title: "Regression-OLS"
+author: "Rajesh K Pahari"
+date: "February 19, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+#SLR-Single Linear Regression
+data("Orange")
+str(Orange)
+plot(Orange$age,Orange$circumference)
+#Lets crfeate one model where=circumference and x= age 
+#h0: no relation of age & circumferenace
+#fit=lm(y~x,data=)
+fit=lm(circumference~age,data=Orange)
+summary(fit)
+##look p value at last row <<0.05..reject h0..mean there is relation. So R2 is different from 0
+# P value tell whether the model is statistically significant or not
+##R2: See adj R2 .85  nearly 1 ...so 82 % chance of a relationship..or 82% of data explained by #the model
+
+##Intercept or constant value: 17.39
+##Slope=0.106..co-efficient
+##See the p value of intercept its in border line where as pvalue of constatnt is fine
+# thats why we willn't add the intercept in our formula
+#curcum= 17.4 + 0.106*age>>>   circum= 0.106*age...we will exclude intercept.83% data is #explained with this model
+
+
+##Inerefernces we can draw from the result
+library(ggplot2)
+ggplot(Orange,aes(x=age,y=circumference))+
+  geom_point(color='#2980B9',size=4)+
+  geom_smooth(method=lm,color='#2C3E50')
+
+fit=lm(circumference~age,data=Orange)
+summary(fit)
+p=ggplot(Orange,aes(x=age,y=circumference))+
+  geom_point(color='#2980B9',size=4)+
+  geom_smooth(method=lm,color='#2C3E50')
+p1<-p+ggtitle("OLS regression Line")
+p1  
+
+
+#Predict circumference of a tree of age 1500
+age=1500
+circ=.106*age
+circ
+```
+```{r}
+#Confidence interval in context of OLS
+library(ggplot2)
+
+fit=lm(circumference~age,data=Orange)
+summary(fit)
+
+p=ggplot(Orange,aes(x=age,y=circumference))+
+  geom_point(color='#2980B9',size=4)+
+  geom_smooth(method=lm,color='#2C3E50')
+p1<-p+ggtitle("OLS regression Line")
+p1  
+
+#What isthis grey line???
+#This iks 95% Ci line..95% of data lies in it.ggplot2 by default gives 95%
+# see width ofthe line is short when data concentration is high...
+
+
+####Prediction from our model
+new.dat=data.frame(age=1500)
+predict(fit,newdata = new.dat,interval='confidence')
+#fit used y=17=x*.106
+#so fit gave 177..lower and upper range also given based on CI 95
+
+
+#Confidence interval of slope estimate
+confint(fit) #[0.09,  .12]   but fitted is .106 this range doesn't contain 0..so stastically significant
+#See the intercept interval it contains 0 ...so its not stastically ignificant.
+
+```
+
+```{r}
+#######Linear regression without intercepts
+#Force intercept to be 0
+fit0=lm(circumference~age+0,data=Orange)
+summary(fit0)
+#See the adjusted r2 increased a lot
+#p value reduced a lot..Now the model is explaining more data..more reliable
+
+```
+
+```{r}
+#F-test/Anova in linear regression
+#H0:fit of the intercept only model is as good as my regression model
+#H1:my regression model is better than the fit of the intercept only model
+
+fit1<-lm(Sepal.Length~Petal.Length,data=iris)
+summary(fit1)
+anova(fit1)
+#P value <0.05...hence good fit...my model is better one
+#F value is 468.55
+```
+##Multiple Linear Regression 
+```{r}
+##################################Multiple Linear Regression############
+data("iris")
+head(iris)
+
+fit2<-lm(Sepal.Length~Sepal.Width+Petal.Length,data=iris)
+summary(fit2)
+#Stastically significant
+fit3<-lm(Sepal.Length~Sepal.Width+Petal.Length+Petal.Width,data=iris)
+summary(fit3)
+#This is also statistically significant
+#Always takes adj R2 value for multiple liner regression
+
+```
+##Multiple liner regression With  interaction and dummy variables
+```{r}
+#Multiple liner regression With  interaction and dummy variables
+# what wil happen if predictor variables are dependent to each other???
+# very very important ...in our real life mutpliple predictors are always depndent to each other
+
+data(iris)
+library(ggplot2)
+
+# Relation of sepal length & Width
+ggplot(iris,aes(x=Sepal.Length,y=Petal.Length))+geom_point()
+
+fitlm=lm(Sepal.Length~Petal.Length,data=iris)
+summary(fitlm)
+#This is stastically significant model
+
+#Is species a significant factor?
+ggplot(iris,aes(x=Sepal.Length,y=Petal.Length))+geom_point(aes(color=Species))
+
+x=lm(Sepal.Length~Petal.Length+Species,data=iris)
+summary(x)
+# Where is setossa in result???
+#setosa the first variable taken as refernce--understand this clearly
+
+
+
+#is there any significannt variations in petal length across species
+#we can ask whether some species tend to have long petals vs short wide petals
+fit1<-lm(Petal.Length~Sepal.Length*Species,data=iris)
+#interaction bet (Speal length& Species) >>>(sepal length* Species)
+
+anova(fit1)
+#p-value(Sepal.Length:Species)<0.05>>>there is inetraction between Speal length & Species
+
+summary(fit1)
+
+######Similar model ..interprete
+fit2b=lm(Sepal.Length~Petal.Length*Petal.Width,data=iris)
+summary(fit2b)
+
+```
+##Some assumption to build a linear regression models
+#X & Y have a linear relationship
+#errors are normally distributed
+#errors are independent/no corelation between errors
+#constant error-Variance-Homoscedascity of residuals or equal variance
+#means Variance around the regression line is the same for all values of the predictor vars
+#Avoid muticolinearity between predictors
+#but how to examines these conditions
+```{r}
+#Testing model assumptions on some simulated data
+x<-runif(100,0,10)#take 100 numbers from 0 to 10
+y<-1+2*x+rnorm(100,0,1)#error with mean 0 sd=1
+
+m<-lm(y~x)
+par(mfrow=c(2,2))
+plot(m)
+#notice left graph...horzental Line..no relation bet residuals &fitted values
+# so the constant error variance is met...so the condition is met
+#2nd Graph:Normal QQ graph : a Sraight line>>Residual or errors are normlly distributed
+
+
+
+#Lets us apply this with iris dataset
+
+fit<-lm(Sepal.Length~Petal.Length,data=iris)
+summary(fit)
+par(mfrow=c(2,2))
+plot(fit)
+#1st Graph:line is not horizental...error & fitted value has relation.fitted value may get #impacted by error..hetroscedasity may existis
+#2nd Graph: error is normally ditributed
+#3rd Graph: Constant error variance..horizental
+
+library(lmtest)
+#test Auto corelation/non-dependence of errors
+#H0: there is no auto corelation between errors
+dwtest(fit)#darbin watson test
+#P value>0.05>>Accept null... there is autocorelation between errors.
+
+#now 1st and third graph is cotradictolry
+#H0:no hetroscedasity...there are constant error variance
+#variance around the regression line is constant
+library(car)
+ncvTest(fit)
+#p value >0.05...Accept null hypo....so hetrosedacity us there.
+
+
+#4th Graph...influnece of outliers
+#identify the outliers which are having too much influance on model
+
+cutoff<-4/((nrow(iris)-length(fit$coefficients)-2))
+plot(fit,which=4,cook.levels = cutoff)
+```
+
+##Identify Multi colineraity
+#When two or more predictor is co-related...one can be linearly predicted from Others
+#so inclusion of co-linear variables can inflate our regression co-eff
+#Cut-off point=.7
+
+```{r}
+#install.packages("mlbench")
+library(mlbench)
+library(help=mlbench)
+
+
+data("BostonHousing")
+str(BostonHousing)
+summary(BostonHousing)
+head(BostonHousing)
+
+#predict the variations in medv Houseprice-median house price
+#medv is out target variable Y- itsa cintineous numerical variable
+#Regrssion problem
+
+
+#Load libraries required
+library(ggplot2)
+library(car)# ML package"
+library(caret) #ML package..to identify multi co linerity and to remove those
+library(corrplot)
+
+#1: tackle Multi co-linearity i.e: highly co-related predictors(X)
+# We will remove numerical Xs with co-relation >0.7
+
+#Lets drop the response variable[Y] from dataframe  to calculate multi co-linearity
+mat_a<-subset(BostonHousing,select = -c(medv))
+head(mat_a)
+
+#Now we only want numerical data
+num_dat<-mat_a[sapply(mat_a,is.numeric)]
+str(mat_a)
+str(num_dat)# it has removed one factor variable
+
+
+#Calculating corelation-strengthof association between two variables
+desccor<-cor(num_dat)
+print(desccor)
+corrplot(desccor)
+
+#remeber we will remove corelted data...blue is positive red is -ve...darker color is strong one
+#library(caret)
+highcorelated<-findCorrelation(desccor,cutoff = 0.7)
+col_highcorelated<-colnames(num_dat[highcorelated])
+col_highcorelated
+
+
+#remove highly co-related variables
+work_data= BostonHousing[,-which(colnames(BostonHousing) %in% col_highcorelated)]
+
+head(work_data)
+
+dim(work_data)
+names(work_data)
+
+str(work_data)
+str(BostonHousing)
+work_data<-work_data[sapply(work_data, is.numeric)]
+corrplot(cor(work_data))
+
+#############Another way...Variance inflation factor(VIF)
+#VIF=1>>>no co-linearity
+#High value >>increasing multi-co-linearity
+
+
+#Choose a VIF cutoff under which variable should be retained
+#vif>10 ..multicolinearity
+#can also reject predictor with vif 5-10
+#car package
+fit=lm(medv~., data=BostonHousing)
+summary(fit)
+vif(fit)
+
+#check the previous result
+df<-cbind(BostonHousing$medv,work_data)
+df=as.data.frame(df)
+fit2<-lm(medv~.,data=df)
+vif(fit2)
+
+#noew i can conclude the result we got from section 1 is correct one and doesnt have any multi #colinearity & can be used for regression testing.
+
+```
+
+##Deals with multicolinearity
+#Principal component regression analysis[PCR] uses PCA
+```{r}
+#Principal component regression analysis[PCR] uses PCA
+##Load Libs
+library(mlbench)
+library(help=mlbench)
+
+##Load Data
+data("BostonHousing")
+
+##observe data
+head(BostonHousing)
+
+#predictthe variation in medv house price- median house price
+#medv is the target variable or Y which is a contineous numerical data
+##Regression problem
+require(pls)# Required for PCR
+set.seed(1000)
+
+###PCR Regression 
+#Techinuqe: We are not going to find out unco related predictors and do regression
+#rather we will do regression where only Principal component will be used
+
+pcr_mdl<-pcr(medv~.,data=BostonHousing,scale=T,validation="CV")#Cross validation
+summary(pcr_mdl)
+
+#Plot the root mean square error>>RMSE
+validationplot(pcr_mdl)#Decline in error in the predicted value  of Y
+#as we add more principal component analysis
+#So 6 component can reduce mosy of the error.
+
+#Plot R-Square 
+validationplot(pcr_mdl,val.type = "R2")#variation Y explained as we 
+#as we add different component
+#See here also 6 component maximum explained
+
+#See how prediction is related with Actual Values
+predplot(pcr_mdl)#predicted Y as actual Y
+```
+##Partial Least Suared regression[PLS]
+
+```{r}
+#Partial Least Suared regression[PLS]
+library(caret)
+
+#data pre-processing
+myfolds<-createMultiFolds(BostonHousing$medv,k=5,times=10)
+#5 fold cross-validation 
+#with 10  iteration -repeated cross validtion
+
+control<-trainControl("repeatedcv",index=myfolds,selectionFunction = "oneSE"  )
+
+#Train the PLS model
+mod1<-train(medv~.,data=BostonHousing,
+            method = "pls",  #Method is Partial least squared
+            metric= "R2", # Metrci R-Squared
+            tuneLength=20,
+            trControl=control,
+            preproc=c("zv","center","scale"))
+
+#Check CV profile
+plot(mod1)#how inclusion of designated latent variables decreses error in predicting y
+
+#install.packages("plsdepot")
+library(plsdepot)
+data("vehicles")
+head(vehicles)
+names(vehicles)
+
+cars=vehicles[,c(1:12,14:16,13)]
+head(cars)
+pls1=plsreg1(cars[,1:15],cars[,16,drop=FALSE],comps=5)#comps choosing first 5 vars to explain #the  response var y
+pls1
+pls1$R2
+#first variable 70% able to explain..etclibrary(ggplot2)
+plot(pls1$R2) 
+
+```
+
+##Regularised regression:Ridge Regression
+```{r}
+library(mlbench)
+data("BostonHousing")
+str(BostonHousing)
+summary(BostonHousing)
+head(BostonHousing)
+
+
+#Ridge regression uses Lambda values to minimise error between predicted & Actual y
+#Lambda=0 reprsents OLS & very high values produce the mean of Y
+#Need to find the optimum lambda.
+
+library(tidyverse)
+library(broom)
+#install.packages("glmnet")
+library(glmnet)
+names(BostonHousing)
+y=BostonHousing$medv
+x=BostonHousing%>% select(crim,zn,indus,chas,nox,rm,age,dis,rad,tax,ptratio,b,lstat)%>%data.matrix()
+#glmnet doesn't work with ~. It requires a input vector and matrix of predictors
+lambdas= 10^seq(3,-2,by=-0.1) #Specify a range of Lambda
+
+fit<-glmnet(x,y,alpha=0,lambda = lambdas)
+
+#Which one is the most optimal Lambda values
+cv_fit<-cv.glmnet(x,y,alpha=0,lambda = lambdas)
+
+plot(cv_fit)
+#Lowest point inthe curve indicates the optimal Lambda
+opt_lambda<-cv_fit$lambda.min
+opt_lambda
+
+#Predict the values &computing an R2 value for the data trained on
+y_pred<-predict(fit,s=opt_lambda,newx=x)
+
+
+#Sum of suares of total & error
+sst<-sum(y^2)
+sse<-sum((y_pred-y)^2)
+#now the R2
+rsq<-1-sse/sst
+rsq
+```
+
+#Regularised regression:Lasso regression
+```{r}
+#List Absolute Shrinkage & selection operator
+
+
+#Lasso regression uses Lambda values to minimise error between predicted & Actual y
+#Lambda=0 reprsents OLS & very high values produce the mean of Y
+#Need to find the optimum lambda.
+
+names(BostonHousing)
+y=BostonHousing$medv
+x=BostonHousing%>% select(crim,zn,indus,chas,nox,rm,age,dis,rad,tax,ptratio,b,lstat)%>%data.matrix()
+#glmnet doesn't work with ~. It requires a input vector and matrix of predictors
+lambdas= 10^seq(3,-2,by=-0.1) #Specify a range of Lambda
+
+fit<-glmnet(x,y,alpha=1,lambda = lambdas)#Unlike redge regression alpha=1
+
+#Which one is the most optimal Lambda values
+cv_fit<-cv.glmnet(x,y,alpha=1,lambda = lambdas)
+
+plot(cv_fit)
+#Lowest point inthe curve indicates the optimal Lambda
+opt_lambda<-cv_fit$lambda.min
+opt_lambda
+
+#Predict the values &computing an R2 value for the data trained on
+y_pred<-predict(fit,s=opt_lambda,newx=x)
+
+
+#Sum of suares of total & error
+sst<-sum(y^2)
+sse<-sum((y_pred-y)^2)
+#now the R2
+rsq<-1-sse/sst
+rsq
+
+
+
+
+
+```

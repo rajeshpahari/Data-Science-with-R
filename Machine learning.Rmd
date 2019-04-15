@@ -1,0 +1,248 @@
+---
+title: "Machine Learning"
+author: "Rajesh K Pahari"
+date: "March 6, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+##A tool for Data Science
+```{r}
+#Rattle: A free graphical interface for data science with R.
+#install.packages("rattle")
+#install.packages("RGtk2")
+library(rattle)
+library(RGtk2)
+rattle()
+
+```
+#k-means clustering
+```{r}
+data(iris)
+summary (iris)
+
+#visulaise the distribution of Speal Length & width
+library(ggplot2)
+ggplot(data=iris,aes(Sepal.Length,Sepal.Width))+geom_point(aes(colour=Species))
+
+#before we do clustering we can see some distiction
+
+set.seed(20)#Ensure replicability
+names(iris)
+
+#k-means minimizes the within group dispertion  & Maximizes the between group dspersion
+
+#1:2 ..we want to distinguish based on first and second column
+# we want 3 cluster
+# nstart- number starting  assignments
+irishcluster<-kmeans(iris[,1:2],3,nstart=15)
+irishcluster
+#See the 71%is a measure of total variance in the datset that is explained by the clustering
+
+
+#compare cluster with in species
+table(irishcluster$cluster,iris$Species)
+#All Satosa assigned to cluster1
+#12 versicolor & 35 verginica assigned to cluster2 and so on
+
+#convert to factor
+irishcluster$cluster<as.factor(irishcluster$cluster)
+
+#create the plot now
+ggplot(data=iris,aes(Sepal.Length,Sepal.Width))+geom_point(aes(colour=irishcluster$cluster))
+
+```
+```{r}
+#But how do i decide how many cluster is best to achive the best clusering
+#Elbow method
+set.seed(123)
+max<-15
+names(iris)
+data<-scale(iris[,-5])#remove Species
+
+
+wss<-sapply(1:max,function(k){kmeans(data,k,nstart=50,iter.max = 15
+                                     )$tot.withinss})#how many cluster will reduce with in 
+#group variations
+
+plot(1:max,wss,
+     type="b",pch=19,frame=FALSE,
+     xlab="Number of clusters k",
+     ylab="Total within clusters sum of squares")
+
+#So we can see 3 cluster is the point of elbow
+
+#lets try out with 5 cluster
+
+irishcluster1<-kmeans(iris[,1:2],5,nstart=15)
+irishcluster1
+#See now 83% variance is explained
+table(irishcluster1$cluster,iris$Species)
+#but see the accuracy is impacted Setosa now devided into various group...earlier it was on 
+#one group..So even the accuracy of the model improved...but its has against real meaning of #data
+#lets check the plot
+ggplot(iris,aes(Sepal.Length,Sepal.Width))+geom_point(aes(colour=irishcluster1$cluster))
+ggplot(iris,aes(Sepal.Length,Sepal.Width,colour=irishcluster1$cluster))+geom_point()
+
+irishcluster1$cluster=as.factor(irishcluster1$cluster)
+ggplot(iris,aes(Sepal.Length,Sepal.Width,colour=irishcluster1$cluster))+geom_point()
+
+
+
+library(factoextra)
+fviz_cluster(irishcluster1,data=data,geom = "point",
+             stand=FALSE,frame.type="norm")
+
+```
+
+
+##Other ways to determine cluster numbers
+```{r}
+data("iris")
+data<-iris[,-5]#select/filterout all numerical variables
+
+head(data)
+#install.packages("NbClust")
+library(NbClust)
+
+
+par(mar=c(2,2,2,2)) #set margins as c(bottom,left,top,right)
+
+nb=NbClust(data,method="kmeans")
+#See the graphs,see the result
+
+#Histogram,breaks=15 as our algo checks from 2-15 cluster
+nb$Best.nc
+hist(nb$Best.nc[1,],breaks=15)
+#See 2 is the best number of cluster
+
+```
+##Fuzy kmeans clustering
+```{r}
+#Allows one point to belong to one or more cluster
+#each  datapoints has membership co-efficient to the different cluster
+#each data point has a probability of belonging to each other
+#each observation is spreadout over the various cluster
+
+
+require(e1071)
+
+head(USArrests)
+?scale
+df<-scale(USArrests)
+#number of cluster:6
+#Number of iteration:20
+cl<-cmeans(df,6,20,verbose = TRUE,method="cmeans")
+head(cl)
+
+fclustIndex(cl,df,index="all")
+#pc:partition coeff...greater is better
+
+
+
+
+#install.packages("fclust")
+require(fclust)
+data("unemployment")
+head(unemployment)
+
+
+#fuzzy k-means
+unempFKM<-FKM(unemployment,k=3,stand=1)#3 Fuzzy cluster
+unempFKM
+summary(unempFKM)
+plot(unempFKM,v1v2=c(1,3))
+
+plot(unempFKM,v1v2=c(1,3),umin=0.5)
+
+#No improvement of visibility 
+
+##Another way of clusterng
+g=FKM.gk(unemployment)# by default 2 cluster
+summary(g)
+plot(g)
+
+
+VIFCR(g,which)
+
+#######Another way
+require(cluster)
+df<-scale(USArrests)
+
+resf<-fanny(df,3)# 3 cluster
+
+head(resf$membership,3)
+head(resf$clustering)
+
+library(factoextra)
+fviz_cluster(resf,ellipse.type = "norm",repel=TRUE,palette="jco",
+             ggtheme=theme_minimal(),legend="right")
+
+#Test the good ness of clustering result
+fviz_silhouette(resf,palette="jco",ggtheme=theme_minimal())
+
+
+
+#same data use different fuzzy k means
+df2<-scale(USArrests)
+resf2<-fanny(df2,3)
+fviz_cluster(resf2,palette="jco",ellipse.type = "norm",repel=TRUE,ggtheme = theme_minimal(),
+             legend= "right")
+fviz_silhouette(resf2,palette="jco",ggtheme=theme_minimal())
+
+
+```
+#Weighted k-means clustering
+```{r}
+#Entopy weighted k-means clustering algorithm is a subspace cluster
+#Ideal for high dimensional data
+#Each cluster we also obtain variable weight that provide a relative 
+#measure of the imporatnce of each variable to that cluster
+
+
+#install.packages("wskm")
+library(wskm)
+
+require(fclust)#for unemployment data
+
+
+data("unemployment")
+
+head(unemployment)
+
+x=scale(unemployment)#To avoid Bias
+
+##Weighted k-means
+wkm<-ewkm(x,3,lambda=1,maxiter=100)
+#lambda should be 1-3
+
+plot(x,col=wkm$cluster)
+
+plot(wkm)
+wkm$cluster
+wkm$weights
+```
+
+

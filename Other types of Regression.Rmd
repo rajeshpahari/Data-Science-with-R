@@ -1,0 +1,408 @@
+---
+title: "Other Types of Regression"
+author: "Rajesh K Pahari"
+date: "February 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+##Standard Major Axis(SMA)
+##Or RMA [Reduced Major Axis]
+#When Liner regression may not be appropriate for the folowing reason:
+#i> there may be measurement error in x & y
+#ii> x& y may have different scales
+
+```{r}
+#install.packages("smatr")
+library(smatr)
+
+#conditions: 1>linear relations between x& y  2>normally distributed Residuals
+#used in case alometric models y=ax^b or log(y)=log(a)+b(log(x))
+
+
+#Test common slope between Different Tree Categories
+data(Orange)
+head(Orange)
+summary(Orange)
+?sma()
+common_slope<-sma(circumference~age*as.factor(Tree),log = "xy",data=Orange)
+summary(common_slope)
+plot(common_slope)
+
+#p-vvalue<0.05...hence accept the H0.
+
+#Test for common slope between sites with different rains
+data("leaflife")
+head(leaflife)
+summary(leaflife)
+common_slope_test<-sma(longev~lma*rain,log="xy",data=leaflife)
+summary(common_slope_test)
+plot(common_slope_test)
+
+
+#multiple comparision
+p1<-sma(longev~lma*site,log='xy',data=leaflife,multicomp=T,multcompmethod = "adjust")
+#p values is >0.05
+summary(p1)
+```
+
+```{r}
+#Testing or evidence for a given slope(or scaling factor)
+library(MASS)
+data("Animals")
+head(Animals)
+help(Animals)
+str(Animals)
+summary(Animals)
+
+plot(Animals,log="xy")
+ft<-sma(brain~body,data=Animals,log="xy")
+
+#Does the brain size scale as the 2/3 power of body size?
+#or slope is 1(variables exibits equal proportional changes & demonastrate isometry)
+ft1<-sma(brain~body,data=Animals,log="xy",slope.test = 1)
+ft2<-sma(brain~body,data=Animals,log="xy",slope.test = 2/3)
+
+
+summary(ft1)
+#See the p value and H0
+plot(ft1)
+
+summary(ft2)
+#See the p value and H0
+plot(ft2)
+
+
+```
+##Ploynomial and non-linear regression
+#to fit model which cant be fit with linear model e.g: relationship bet x & y curvilinear
+#Linear in the co-effs b1,b2
+#though it may contains terms that are non linearin the x's (such as sequence)
+
+```{r}
+q<-seq(0,100,1)  #seq(from,to,by)
+#?seq
+p<-0.6
+y=500+p*(q-10)^3
+
+plot(q,y,type = 'l',col='red',main="Nonlinear relationship",lwd=5)
+
+
+#polynomial regression
+data("ChickWeight")
+head(ChickWeight)
+
+cw1<-subset(ChickWeight,Diet=='1')
+head(cw1)
+
+plot(weight~Time,data=cw1)
+#plot suggestings its not an non-linear relationship
+fit1<-lm(weight~Time,data=cw1)
+summary(fit1)
+# p values<0.05..not agood model...model explains 66% relationship
+AIC(fit1)
+
+######
+fit2<-lm(weight~Time+I(Time*Time),data=cw1)
+summary(fit2)
+AIC(fit2)
+#Adjusted r bit high not much..p value not significant
+fit3<-lm(weight~Time+I(Time*Time)+I(Time*Time*Time),data=cw1)
+summary(fit3)
+#Adjusted R^2 is not incresed much ..p value is not significant
+AIC(fit3)
+
+#######
+#Variables inside I are corelated & that can be a problem
+#produce orthogonal polynomial using poly()
+
+fit2a<-lm(weight~poly(Time,2),data=cw1)
+summary(fit2a)
+AIC(fit2a)
+#not improved much
+
+fit3a<-lm(weight~poly(Time,3),data=cw1)
+summary(fit3a)
+AIC(fit3a)
+
+#Non Linear Regression- where linear regression doesn't work
+#install.packages("nls2")
+library(nls2)
+data("Loblolly")
+head(Loblolly)
+#?Loblolly  #for logistikc growth curve dataset..how with age growth of tree increases
+#but does it increases linearly? no
+str(Loblolly)
+
+plot(Loblolly$age,Loblolly$height)
+
+x<-Loblolly$age
+y<-Loblolly$height
+
+m<-nls(y~a+b*I(x^z),start=list(a=1,b=1,z=1))# What thisfunction does?
+m
+
+#nls needs starting pointfor a,b and z
+#a=Asym,b=xmid,z=scal
+#Asym:numeric parameter reprsenting aymptote
+#xmid:x value of infection
+#Scal:scale parameter
+
+lines(x,fitted(m), lty=2, col="red", lwd=2)
+
+qqnorm(residuals(m))
+qqline(residuals(m))#residuas needs to be normally distributed
+#resuduals are normally distributed..all values along the lines
+
+#compute R2
+
+RSS<-sum(residuals(m)^2)#Residuals Sum of square
+TSS<-sum((y-mean(y))^2)#Total sum of squares
+R_Square<-1-(RSS/TSS)
+R_Square
+#Model explains 99% of variability
+
+
+###But when we dont know the initial values then???
+# We can use the self-Starterfunction
+#SSlogis helps to create the initial estimators of parameters
+getInitial(height~SSlogis(age,Asym,xmid,scal),data = Loblolly)
+
+
+y.ss<-nls(height~SSlogis(age,Asym,xmid,scal),data=Loblolly)
+summary(y.ss)
+library(ggplot2)
+
+alpha<-coef(y.ss)
+plot(age~height,data=Loblolly,main="Logistic growth model of trees",
+  xlab="Age",ylab="Growth")#Census Data
+
+curve(alpha[1]/(1+exp(-(x-alpha[2])/alpha[3])),add=T,col="blue")
+
+#fit the growth euation Asym/(1+exp((xmid-input)/scal))
+qqnorm(residuals(y.ss))
+qqline(residuals(y.ss))
+
+
+
+#Goempertz Growth Model
+##Asym*exp(-b2*b3^x)
+
+fm1<-nls(height~SSgompertz(log(age),Asym,b2,b3),data=Loblolly)
+summary(fm1)
+
+alpha<-coef(fm1)
+alpha
+
+
+
+qqnorm(residuals(fm1))
+qqline(residuals(fm1))
+
+
+
+#We can use other growth function
+#champman richard growth model-where tree height groth modeled as function of time
+
+
+#Define function
+chapm<-function(x,Asym,b,c)Asym*(1-exp(-b*x))^3
+
+#Asym isthe max value of growth
+#c is related to catabolism(Destructive metabolism);max value is 3
+#(1-exp)function helps define the actual growth
+
+
+#nls_lob<-nls(height~chapm(age,Asym,b,c),data=Loblolly,start=list(Asym=100,b=0.1,c=2.5))
+
+#install.packages("nlshelper")
+library(nlshelper)
+#plot_nls(nls_lob,ylim=c(0,80),xlim=c(0,30))
+
+
+```
+##Linear Ixed effect Modeling
+```{r}
+###############################################
+############### LINEAR MIXED EFFECT MODEL
+
+#### Regression models: modelled the impact of fixed effects.
+#are constant across individuals,
+#### Mixed effect models- account for random effects
+#vary across individuaals
+#Effects are fixed if they are interesting in themselves 
+#or random if there is interest in the underlying population
+
+library(lme4)
+
+### specify random effect:  (1 | grouping factor) )
+### random effect model generated for each level of grouping factor
+### provide another way to quantify individual differences.
+
+#experiment on the effect of diet on early growth of chicks
+#allowing for individual variability in weight of each Chick (random)
+#(in technical terms, a random intercept for each Chick: (1 | Chick) )
+
+
+model = lmer(log(weight) ~ Time*Diet + (1 | Chick), data=ChickWeight,REML=F)
+
+summary(model)
+
+#Model parameters are computed using maximum likelihood estimates using REML=F
+
+
+##fixed effects of diet & time on the intercept
+#a constant difference in weights among chicks 
+#randomly assigned to different diets
+#random intercept model
+model2 = lmer(log(weight) ~ Time+Diet + (1 | Chick), data=ChickWeight,REML=F)
+
+summary(model2)
+
+#impact ofinteraction bw diet and time
+# quantify the impact on 
+#the slope (i.e., effects of diet on the rate of growth)
+model3 = lmer(log(weight) ~ Time*Diet + (1 | Chick), data=ChickWeight,REML=F)
+
+summary(model3)
+
+coef(summary(model3))
+
+anova(model2,model3)
+##Is the interaction between time and diet significant?
+#interaction bw time and weight is signidicant
+# all four diets influence weight gain differently
+
+coeffs <- coef(summary(model3))
+p <- pnorm(abs(coeffs[, "t value"]), lower.tail = FALSE) * 2
+
+library(ggplot2)
+ggplot(fortify(model2), aes(Time, weight, color=Diet)) +
+  stat_summary(fun.data=mean_se, geom="pointrange") +
+  stat_summary(aes(y=.fitted), fun.y=mean) #diets influence wt gain
+
+##impact of diet 1 on checken weight
+exp(0.0765) #a 7.9% increase
+
+#impact of diet 2
+
+exp(0.067+0.048) #12.1% increase in weight 
+
+
+##Random slopes (no random intercept): allowing for a different average slope for each diet
+
+model4 = lmer(log(weight) ~ Time*Diet +  (0 + Time | Chick), data=ChickWeight,REML=F)
+
+summary(model4)
+
+library(lsmeans)
+library(lmerTest)
+
+Clst <- lstrends (model4, ~ Diet, var = "Time")
+#estimate and compare the average
+#slopes for each diet
+
+## for random slope & intercept : (1 + Time | Chick)
+```
+##Ribust regression
+```{r}
+# Use in any situation in OLS where Outliers are there
+data("faithful")
+head(faithful)
+
+fit<-lm(eruptions~waiting,data=faithful)
+par(mfrow=c(2,2))
+plot(fit)
+
+num<-faithful[,'waiting',drop=FALSE]
+head(num)
+
+p1=predict(fit,num)
+#p1= as.data.frame(p1)
+p1
+
+
+library(Metrics)
+
+rmse(faithful$eruptions,p1)
+
+library(MASS)
+
+#Robust regression
+#reduce the influances of outliers
+#Downweight outliersreduce their influance on fitted Regression line
+rob<-rlm(eruptions~waiting,data=faithful,psi=psi.bisquare)
+
+#re-weighting outliers
+#can take psi,.huber,psi.hampel,psi.bisquare
+
+summary(rob)
+p2=predict(rob,num)
+
+rmse(faithful$eruptions,p2)
+
+#So no improvement in mdel however ouliers Influances is reduced
+
+
+
+#resistance regression
+qqnorm(residuals(fit))
+qqline(residuals(fit))
+
+# Residuals are not normally distributed
+
+resis<-lqs(eruptions~waiting,data=faithful)
+
+summary(resis)
+
+p3=predict(resis,num)
+rmse(faithful$eruptions,p3)
+
+#Root mean square error increased...we will not follow this model
+plot(faithful$waiting,faithful$eruptions)
+abline(fit,lty="dashed")
+abline(rob,col="red")
+abline(resis,col="blue")
+
+#non_constant variance
+#Quantile Regression
+install.packages("quantreg")
+library(quantreg)
+Q25=rq(eruptions~waiting,data=faithful,tau=0.25)
+Q75=rq(eruptions~waiting,data=faithful,tau=0.75)
+
+
+anova(Q25,Q75)#H0:regression coeff are same for both
+
+plot(faithful$waiting,faithful$eruptions)
+abline(Q25,lty=3,col="red")
+abline(Q75,lty=3,col="blue")
+
+
+print(rq(eruptions~waiting,data=faithful,tau=seq(from=0.05,to=0.95,by=0.05)))
+plot(summary(rq(eruptions~waiting,data=faithful,tau=seq(from=0.05,to=0.95,by=0.05))))
+```
+

@@ -1,0 +1,208 @@
+---
+title: "GLM-Genralised Linear Model"
+author: "Rajesh K Pahari"
+date: "February 26, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+##Generalised Linear Model
+```{r}
+##Generalised Linear Model
+#genarlly used when residuals are neither normally distributed nor could be made normal
+#biologicalData>>proportions>>>count data>>Binary responses
+
+
+#Logistic regression
+#sinosuidal shaped data- variance decreses towards 0 & 1 binomial
+library(ggplot2)
+ggplot(mtcars,aes(x=wt,y=am))+geom_point()+stat_smooth(method='glm',method.args = list(family="binomial"),se=FALSE)
+
+#Specify binomial ditribution for logistic regression
+fitglm=glm(am~hp+wt,data=mtcars,family=binomial(link='logit'))
+
+#odds of sucess or Y=1
+exp(coef(fitglm))
+
+summary(fitglm)
+
+#The null deviance shows how well the response variable is 
+#predicted by a model that includes only the intercept (grand mean).
+#DF number of observations-1
+
+#The residual deviance shows how well the response variable is 
+#predicted by a model that includes both predictor vars (DF declines by 2 more)
+
+#residual deviance for a well-fitting model 
+#should be approximately equal to its degrees of freedom
+
+#-----------------------------------
+
+# how well does the model fit the data
+#Hosmer and Lemeshow goodness of fit (GOF) test
+#install.packages("ResourceSelection")
+library(ResourceSelection)
+hoslem.test(mtcars$am,fitted(fitglm))
+#P>0.05...Modell fitted well
+#we have no significant difference between the model and the observed data (i.e. the p-value is #above 0.05)
+
+#Predic the respose variable 
+newdata=data.frame(hp=120,wt=2.8)
+predict(fitglm,newdata,type="response")
+#64% chance that Y will be 1
+
+
+#Overdispersion means that the data show 
+# discrepancies between the observed responses yi and their predicted values 
+#larger than what the binomial model would predict
+#overdispersion is present in a dataset, the estimated standard errors and test statistics 
+#the overall goodness-of-fit will be distorted
+#install.packages("arm")
+library(arm)
+x=predict(fitglm)
+y=resid(fitglm)
+
+binnedplot(x,y)
+#most of the data disparseed between -2 to 2
+#No overdspersion
+
+
+
+########## binomial count data
+#### logistic data for other cases with sinosuidal shape
+### variance decreases towards 0 and 1
+### binomial distribution
+#install.packages("AICcmodavg")
+library(AICcmodavg)
+data(beetle)
+head(beetle)
+b=beetle
+
+ggplot(b,aes(x=Dose,y=Mortality_rate))+geom_point()
+b$survive=b$Number_tested-b$Number_killed
+
+#Logistic Transformation converts proportions to logit
+fitglm2<-glm(cbind(Number_killed,survive)~Dose,data=b,family = binomial)
+
+summary(fitglm2)
+#good fit
+
+#Check overdispertions
+x=predict(fitglm2)
+y=resid(fitglm2)
+binnedplot(x,y)
+```
+##Multinomial Logistic Regression:more than two discrete Variable
+```{r}
+library(caret)
+glass<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section11\\glassClass.csv")
+
+head(glass)
+str(glass)
+summary(glass)
+
+glass$Type=as.factor(glass$Type)
+table(glass$Type)
+
+set.seed(99)
+#Split data in 75-25%
+Train=createDataPartition(glass$Type,p=0.75,list=FALSE)
+
+
+#Training data
+training=glass[Train,]
+#Testing Data
+testing<-glass[-Train,]
+
+library(nnet)#Library for neural network..we will use for logistic regression
+gModel<-multinom(Type~.,data=training,maxit=500,trace=T)
+
+varImp(gModel)#importance of different predictors
+
+#Lets Move into testing part
+p1=predict(gModel,type="class",newdata = testing)
+p2=predict(gModel,type="probs",newdata = testing)
+head(p1)
+head(p2)
+
+#Test Accuracy
+postResample(testing$Type,p1)#Compare withn p1
+#Accuracy 70%
+
+```
+##Regression on count data>>.so Pisson regression
+```{r}
+c=read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\Sentimental-Analysis_R-master\\Sentimental-Analysis_R-master\\canopycvr1.csv")
+attach(c)
+head(c)
+
+#How response variaable cover impacted by other variables
+mean(c$cover)
+var(c$cover)
+#Mean and variance nealy similar...meets the condition of Poission regression
+fit=glm(cover~elev,data=c,family = poisson(link=log))
+
+summary(fit)
+#interpretation: for a unit increase in elevation , the increase in "cover" is e^b
+cf=coef(fit)
+cf
+exp(cf[2])
+#1 increase in elevation will increase "cover" by 1.002
+
+
+#model selection
+fit2<-glm(cover~elev+tci,data=c,family = poisson)
+summary(fit2)
+
+#by doing an Anova, lets chneck whether adding tci will increse the model performance
+anova(fit,fit2,test="Chisq")
+#In result we can see that, the performance of the model is not improved
+head(c)
+
+#Categorical qualitative variables
+fit3<-glm(cover~disturb*elev,data=c,family=poisson)
+summary(fit3)
+
+#In case of overdisperesed data,use negetive binomial regression
+library(MASS)
+#glm.nb
+fit4<-glm.nb(cover~elev,data=c)
+summary(fit4)
+
+```
+##GOF:Goodness of fit testing
+#Does model fit2(Possion distribution )fit the data
+#Does model fit4(negetive binomial) fit the data
+```{r}
+1-pchisq(summary(fit2)$deviance,summary(fit2)$df.residual)
+#p value is <<0.05..hence accept given poisson model fits the data
+1-pchisq(summary(fit4)$deviance,summary(fit4)$df.residual)
+#p<<0.05>>.Good Fit
+
+
+```
+

@@ -1,0 +1,108 @@
+---
+title: "Indexing n Subsetting Datain R"
+author: "Rajesh K Pahari"
+date: "January 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+#########################################################################################################Indexing ############################################
+#################################################################################
+
+###lets work on some in-built datasets
+
+data(iris) #load dataset in my workspace
+??iris   # Check r documentaion on Iris
+#Lets check Structure
+str(iris)
+
+
+#Lets the structure of Species
+str(iris$Species)
+
+summary(iris)
+
+summary(iris$Species)
+
+#Read first 10 row of the dataset
+
+head(iris,10)
+#read first 15-20 rows
+
+iris [10:15,]
+
+str(iris)
+str(iris [10:15,])
+
+# Well, if i want to display all row but few columns...
+
+iris [,3:5] #Start from col 3rd and display upto 5th cols
+
+str(iris)
+str(iris [,3:5])
+head(iris [,3:5])
+head(iris)
+# Who reminds col nos all the time its easy to remeber col names...can i 
+#do it using col names..yes
+df=iris[,c("Sepal.Length","Species")]
+head(df)
+str(df)
+
+#Subset one column
+
+x2 = iris[,"Sepal.Length"]
+str(x2)
+
+#But now see X2 is a vector..not a dataframe.
+
+x2 = iris[,"Sepal.Length",drop=F]
+str(x2)
+#Now see the result. Its a dataframe now.
+
+
+##Now exclude one column and display all. 
+list_col =c(colnames(iris)) # Create a Character list of all columns
+list_col
+str(list_col)
+iris[list_col!= "Species"]
+
+#Include 3rd & 4th columns
+head(iris[,-3:-4])
+
+##Selct a column value 
+##Isolate all rows  for sepcies setosa
+df_setosa= subset(iris,iris$Species=="setosa")
+head(df_setosa)
+
+
+
+
+
+
+
+```
+
+

@@ -1,0 +1,72 @@
+---
+title: "Read PDF"
+author: "Rajesh K Pahari"
+date: "January 27, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+#install package pdf tools and load
+
+install.packages("pdftools")
+library(pdftools)
+
+download.file("https://worldpaymentsreport.com/wp-content/uploads/sites/5/2018/10/World-Payments-Report-2018.pdf","test.pdf", mode="wb")
+text=pdf_text("test.pdf")
+
+#First page Text
+cat(text[1])
+
+# Table of content
+toc<- pdf_toc("test.pdf")
+head(toc)
+
+
+#######Read Table from PDF
+install.packages("devtools")
+#install.packages("ghit")
+library(devtools)
+#library(ghit)
+
+
+#Custom Library load
+devtools::install_github("ropensci/tabulizer")
+#ghit::install_github(c("leeper/tabulizerjars","leeper/tabulizerjars" ), INSTALL_opts="--no-multiarch",dependencies=c("Depends","Imports"))
+library(tabulizerjars)
+#devtools::install_github(c("reopensci/tabulizer"),args="--no-multiarch")
+
+
+library(tabulizer)
+library(tabulizerjars)
+
+
+tab<-extract_tables("https://worldpaymentsreport.com/wp-content/uploads/sites/5/2018/10/World-Payments-Report-2018.pdf")
+head(tab)
+tab[[10]]
+tail(tab)
+tab2=as.data.frame(tab[[10]])
+tab2
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+

@@ -1,0 +1,249 @@
+---
+title: "Dimensionality Reduction"
+author: "Rajesh K Pahari"
+date: "March 8, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+##Dimensionality Reduction--Features selection-reduce the predictors
+
+##PCA-Principal component Analysis
+```{r}
+#PCA is ordination and dimension reduction technique
+#we convert our numerical predictor into a set of uncorelated predictors called as 
+#principal components. These principal components explains maximum variability
+
+data(iris)
+head(iris)
+
+#Skewnesss can affect the result
+#Center and scale
+#Log transformation: to make data as normal as possible
+#then linear combination predictors
+
+
+#Log Transformation...we can use other transformation to make data as normal as possible
+log.x<-log(iris[,1:4]) #Numerical variable
+ir.species<-iris[,5]  #factor variable 
+
+#Apply PCA -scale.= True is highly advisable. Default is False
+
+ir.pca<-prcomp(log.x,
+              center=TRUE,
+              scale.=TRUE)   #apply on quantative variables
+
+print(ir.pca)
+#plot method--see which Pc  explains maximum variability in data
+#Which Pc to retain
+plot(ir.pca,type="l")
+#So we can work out with first three PCs
+summary(ir.pca)
+#Check the proportion of variance & decide which 3 we will keep
+# See the cumulative proportion till Pc3 we can get 99% of variability
+
+
+######
+library(devtools)#for github packages or outside packages of CRAN
+#install_github('fawda123/ggord')
+library(ggord)
+p<-ggord(ir.pca,iris$Species)
+p
+
+library(FactoMineR)
+library(factoextra)
+
+res.pca<-PCA(log.x,graph=FALSE)
+get_eig(res.pca)
+fviz_screeplot(res.pca,addlabels=TRUE,ylim=c(0,90))
+
+#How much each individualpredictors contributed to the PC variances
+var<-get_pca_var(res.pca)
+var
+#Contribution of variables
+head(var$contrib)
+
+#contribution of variables to PC1
+fviz_contrib(res.pca,choice="var",axes=1,top = 10)
+
+#contribution of variables to PC2
+fviz_contrib(res.pca,choice="var",axes=2,top = 10)
+
+#contribution of variables to PC3
+fviz_contrib(res.pca,choice="var",axes=3,top = 10)
+
+
+#Graph of the variables to PC: default plot
+fviz_pca_var(res.pca,col.var = "black")
+```
+##MDS[Multi dimensional Scaling]
+```{r}
+#MDS helps us to visualise pattern proximity
+#PCA can be considered as simplest form of MDS if the distance measurement used in MDS equals o #the covariance of the data
+
+head(swiss)
+
+swiss.dist<-dist(swiss)
+#head(swiss.dist)
+swiss.mds<-cmdscale(swiss.dist,k=2)#2 components
+swiss.mds
+plot(swiss.mds[,1],swiss.mds[,2],type="n",main="cmdscale(stats)")
+
+text(swiss.mds[,1],swiss.mds[,2],rownames(swiss),cex=0.6,xpd=TRUE)
+
+
+library(MASS)
+#non-Metric MDS
+swiss.nmmds<-isoMDS(swiss.dist,k=2)
+
+plot(swiss.nmmds$points,type="n",main="ISOmds")
+
+text(swiss.nmmds$points,rownames(swiss),cex=0.6,xpd=TRUE)
+```
+## Refer Multi colinearity once again
+##Lasso Regression- for variable selection
+```{r}
+data("BostonHousing")
+str(BostonHousing)
+
+summary(BostonHousing)
+head(BostonHousing)
+
+
+library(caret)
+
+train_control<-trainControl(method="cv",number=10)
+#10 fold cross validation
+
+lasso<-train(medv~.,data=BostonHousing,
+             method="lasso",
+             preProc=c("scale","center"),
+             trControl=train_control)
+lasso
+
+#get co-effcient
+
+library(elasticnet)
+predict.enet(lasso$finalModel,type="coefficients",s=lasso$bestTune$fraction,mode="fraction")
+
+#Coefficients reduced to zero can be discarded
+
+```
+##Variable/Feature Selection - Select the most important variables
+```{r}
+#install.packages("FSelector")
+library(FSelector)
+
+
+#corelation filter
+#weights of contineous attributes basing on thneir contineous class attribute
+
+library(mlbench)
+data("BostonHousing")
+
+head(BostonHousing)
+str(BostonHousing)
+d=BostonHousing[-4]#Only numerical Variables
+head(d)
+wts<-linear.correlation(medv~.,d)
+print(wts)
+
+subset=cutoff.k(wts,3)
+subset
+f=as.simple.formula(subset,"medv")
+print(f)
+
+#Now we will use non-metric parametric way....rank.corelation
+
+wts<-rank.correlation(medv~.,d)
+print(wts)
+#value changed but still the Attribute importance order is same
+subset=cutoff.k(wts,3)
+subset
+f=as.simple.formula(subset,"medv")
+print(f)
+#Same result
+
+
+#Work with bith qquantative & qualatative predictors
+
+mat<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\Sentimental-Analysis_R-master\\Sentimental-Analysis_R-master\\student-mat.csv")
+
+head(mat)
+
+#G3 is the response variable
+#Others are either quantitative or qqualitative variables
+
+
+#CFS Method..package FSelector..not a robust method
+result=cfs(G3~.,mat)
+f= as.simple.formula(result,"G3")
+print(f)
+
+#Some other way
+#chiSquare test
+#predictor is dependent or not
+wt<-chi.squared(G3~.,mat)
+print(wt)
+
+subset=cutoff.k(wt,5)
+f<-as.simple.formula(subset,"G3")
+print(f)
+
+#information gain method for variable selection
+wts<-information.gain(G3~.,mat)
+
+subset=cutoff.k.percent(wts,0.75)
+f<-as.simple.formula(subset,"G3")
+print(f)
+```
+##Boruta feature selection:Random forest method
+```{r}
+#Performs a top-down search for for relevant features by comparing original attributes
+#progressively eliminates inrrevalent features
+#install.packages("Boruta")
+library(Boruta)
+require(caret)
+tumor<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\Sentimental-Analysis_R-master\\Sentimental-Analysis_R-master\\cancer_tumor.csv")
+head(tumor)
+str(tumor)
+
+drops=c("id","X" )
+
+df=tumor[,!names(tumor)%in% drops]
+
+head(df)
+
+table(df$diagnosis)
+prop.table(table(df$diagnosis))
+
+bor.result<-Boruta(df,df$diagnosis,
+                   maxRuns=101,
+                   doTrace = 0)
+
+bor.result
+```
+

@@ -1,0 +1,276 @@
+---
+title: "Variable and Model selection"
+author: "Rajesh K Pahari"
+date: "February 22, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+##Variable & Model Selection
+```{r}
+library(MASS)
+
+fit1<-lm(Sepal.Length~-Species, data=iris)
+names(mtcars)
+#Examine all models
+step(lm(mpg~wt+drat+disp+qsec,data=mtcars),direction = "both")
+
+step(lm(mpg~wt+drat+disp+qsec,data=mtcars),direction = "backward")
+
+#Lets apply another theqnique. Start with null
+#include peroformance model of null as well
+null<-lm(Sepal.Length~1,data=iris) #mean value of Y predict new values
+
+full<-lm(Sepal.Length~., data=iris)#consider all predictors
+
+step(null,scope=list(lower=null,upper=full),direction="both" )# Same thing like above tecqnique
+#only i dont need to list down variable name
+#Selct when AIC is lowest  -348.
+
+
+#install.packages("relaimpo")
+library(relaimpo)
+
+fit <- lm(formula = Sepal.Length ~ Petal.Length + Sepal.Width + 
+            Petal.Width, data = iris)
+
+#Boothstrap measures of relative importance (1000 samples)
+#drawing randomly with replacement from a set of data points
+boot <- boot.relimp(fit, b = 1000, type = c("lmg", 
+                                            "last", "first", "pratt"), rank = TRUE, 
+                    diff = TRUE, rela = TRUE) #different imp evaluation methods
+#Different imp evaluation methods
+booteval.relimp(boot)# print the result
+plot(booteval.relimp(boot,sort=TRUE)) # plot result
+
+```
+
+
+##Model Selection -OLS MOdel
+```{r}
+library(mlbench)
+data("BostonHousing")# Boston houjsing is part of mlbench
+str(BostonHousing)
+
+fit1<-lm(medv~.,data=BostonHousing)
+summary(fit1)
+
+fit2<-lm(medv~lstat,data=BostonHousing)
+summary(fit2)
+
+
+
+#install.packages("leaps")
+library(leaps)
+# i want tokae two -3 variables having most effect.We can do manually and findour adjusted r #sqaure or we can do using leaps library
+
+regfit<-regsubsets(medv~.,data=BostonHousing)
+summary(regfit)
+#Look for the Start...its one of the best predictor.
+reg_summary=summary(regfit)
+reg_summary$adjr2
+
+#Adjusted R2
+plot(regfit,scale = "adjr2",main="Ädjusted R2")
+
+#the best OLS regression model includes - #intercepts,prdeictors,:zn,chas1,nox,rm,dis,pratio,b,lstat
+
+```
+
+
+```{r}
+#Evaluate Accuracy of Regression Model
+
+data("BostonHousing")
+str(BostonHousing)
+
+
+summary(BostonHousing)
+head(BostonHousing)
+
+
+library(caret)
+
+
+
+#Step1: Data splilt
+set.seed(99)
+Train<- createDataPartition(BostonHousing$medv,p=.75,list=FALSE)
+#the above statement will split datga ikn 75%-25% ratio
+training<-BostonHousing[Train,]
+testing<-BostonHousing[-Train,]
+
+fit1<-train(medv~.,data=training,method="lm")# filt OLS Model
+summary(fit1)# see the performance of the training data
+
+
+fit2<-train(medv~.,data=training,method="lm",metric="RMSE")# filt OLS Model
+print(fit2)#tells us the RMSE error
+
+p1=predict(fit2,newdata = testing) #predic medv on the basis of 25% test data
+
+p2<-as.data.frame(p1)
+
+test=as.data.frame(testing$medv)
+
+y=cbind(test,p2)
+colnames(y)<-c("medv","predicted")
+head(y)
+#corelation betwwen  Actual& predicted Value
+cor.test(y$medv,y$predicted)
+#>.75 ..so good model
+
+
+#Lets us now find the error between actual and predictd values
+#install.packages("Metrics")
+library(Metrics)
+rmse(y$medv,y$predicted)
+#Training RMSE & Testing Model ....closer....no overfitting
+
+
+#Problem is One side of data gave result...so use Kfold CV
+```
+#k-fold CV
+```{r}
+#define the training control
+train_control<-trainControl(method="cv",number=10)
+# Method is cross validation.
+#Number of fold 10
+fit3<-train(medv~.,data=BostonHousing,trControl=train_control,method="lm",metric="RMSE")
+summary(fit3)
+print(fit3)
+
+```
+#10 fold CV &Data split
+```{r}
+set.seed(999)
+Train<-createDataPartition(BostonHousing$medv,p=0.75,list=FALSE)
+
+training=BostonHousing[Train,]
+testing=BostonHousing[-Train,]
+
+train_control=trainControl(method="cv",number=10)
+
+fit4<-train(medv~.,data=training,trControl=train_control,Method="lm")
+print(fit4)
+
+
+p1<-predict(fit4,newdata = testing)
+
+p2<-as.data.frame(p1)
+
+test<-as.data.frame(testing$medv)
+y<-cbind(test,p2)
+colnames(y)<-c("test","pred")
+
+head(y)
+
+cor.test(y$test,y$pred)
+
+library(Metrics)
+rmse(y$test,y$pred)
+
+```
+
+##Lasso Regression- Variable selection
+
+```{r}
+data("BostonHousing")
+str(BostonHousing)
+head(BostonHousing)
+summary(BostonHousing)
+
+library(caret)
+
+
+train_control=trainControl(method = "cv",number = 10)# for 10 fold cross validation
+
+lasso<-train(medv~.,BostonHousing,
+             method="lasso",
+             preProc=c('scale','center'),#see P is caps
+             trControl=train_control)
+
+
+lasso
+
+
+#get co-efficient for all the predictors
+#install.packages("elasticnet")
+library(elasticnet)
+predict.enet(lasso$finalModel,type="coefficients",s=lasso$bestTune$fraction,mode="fraction")
+#coefficient of the variables reduced to zero can be discarded.
+
+```
+##Identify the contribution of predictors in explaining the variations in y
+```{r}
+#Variable importance in OLS
+library(relaimpo)
+
+#Percent wise contribution of different predictors
+
+fit1<-lm(medv~.,data=BostonHousing)
+?calc.relimp
+calc.relimp(fit1,type="lmg",rela=TRUE)
+#lm=collection of metrikcs to be calculated
+#elative importances summing to 100% (rela=TRUE)
+#Result is R^2 is partitioned by avergaing oevr orders
+
+
+
+
+#Variance partitioning
+install.packages("hier.part")
+library(hier.part)
+
+#Determine the amount of Y variance explained by each of the predictor
+head(BostonHousing)
+ncol(BostonHousing)
+
+x=BostonHousing[,1:12] #only works for <= 12 predictors ..so have to discard last one
+H= hier.part(BostonHousing$medv,x,fam="gaussian",gof="Rsqu")
+?hier.part
+H$I.perc  #independent effect
+#rm has 24% contribution on determining response variable
+
+
+#variable importance using caret package
+#can be used with any regression model
+library(caret)
+varImp(fit1,scale=False)#applied on Lm menthod
+#For regression, the relationship between each predictor 
+#and the outcome is evaluated. 
+#An argument, nonpara, is used to pick the model fitting technique.
+#When nonpara = FALSE, a linear model is fit and the absolute value of
+#the t-value for the slope of the predictor is used. 
+#Otherwise, a loess smoother is fit between the outcome and the 
+#predictor. The R2 statistic is calculated for this model 
+#against the intercept only null model. 
+#This number is returned as a relative measure of variable importance.
+
+
+
+```
+

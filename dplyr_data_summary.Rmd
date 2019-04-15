@@ -1,0 +1,230 @@
+---
+title: "Dplyr_Package_data_summary"
+author: "Rajesh K Pahari"
+date: "February 1, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+################################################################################
+##################dplyr: Data Summary###########################################
+################################################################################
+library(dplyr)
+data("airquality")
+head(airquality)
+
+
+#Selct few cols by names
+
+names(airquality)
+
+selected_data= select(airquality,Ozone,Month)
+head(selected_data)
+
+#Drop a col
+drop_day=select(airquality,-Day)
+head(drop_day)
+
+drop_day_month=select(airquality,-Day,-Month)
+head(drop_day_month)
+
+#Data filtering
+filter(airquality,Ozone>25)
+f<-filter(airquality,Ozone>25 & Temp>50)
+head(f)
+str(f)
+
+#Add a new column#
+dm=mutate(airquality,tempinC=(Temp-32)*5/32)
+head(dm)
+
+#Summarize group by Data
+summarise(airquality,mean(Ozone,na.rm=T))#Mean Ozone Value
+summarise(airquality,min(Ozone,na.rm=T))#Mean Ozone Value
+
+#group : Avarage wind value per mmonth
+#Month is the basis of Grouping
+summarise(group_by(airquality,Month),mean(Wind,na.rm=T))
+
+summarise(group_by(airquality,airquality$Day),mean(Solar.R,na.rm=T))
+
+#piping: %>%  output of one finction is input of other function
+airquality%>%select(Ozone,Temp)%>%head(2)
+#So Airquality input olf Select & its output is input of head function
+#Its a chnain of function
+airquality%>%
+  group_by(Month)%>%
+  summarise(mean(Temp,na.rm=T))
+
+#Group by month but we dont need when month = May
+airquality%>%
+  filter(Month!=7)%>%
+  group_by(Month)%>%
+  summarise(mean(Temp,na.rm=T))
+
+#####
+
+
+####
+
+cpi=read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section3\\cpi.csv")
+head(cpi)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+#Gather cols
+names(cpi)
+cpi_hist<-gather(cpi,year,cpi,CPI.2012.Score:CPI.2016.Score,na.rm=TRUE)
+head(cpi_hist)
+tail(cpi_hist)
+
+#letslookinto the top 15 countries in rank
+top2016<- cpi_hist %>%filter(year=="CPI.2016.Score")%>%top_n(15,cpi)
+top2016$rnk="top"
+top2016
+
+
+#colect bottm 15
+bot2016<- cpi_hist %>%filter(year=="CPI.2016.Score")%>%top_n(-15,cpi)
+bot2016$rnk="bottom"
+bot2016
+
+##
+
+dt2016<-rbind(top2016,bot2016)
+tail(dt2016)
+library(ggplot2)
+ggplot(dt2016,aes(reorder(Country,cpi),cpi))+geom_bar(stat="identity",aes(fill=rnk))+coord_flip()+xlab("")+ggtitle("Top and Bottom CPI's in 2016")+scale_fill_manual(values= c("top"="blue", "bottom" = "red"),name="CPI")
+
+```
+
+
+
+```{r}
+############################################Plot Temporal Data############################################
+############################################Plot Temporal Data############################################
+############################################Plot Temporal Data############################################
+
+stocks=read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section3\\5stocks.csv")
+head(stocks,n=10)
+tail(stocks,n=10)
+ncol(stocks)
+#remove date col
+smove<-select(stocks,-1)
+head(smove)
+str(smove)
+
+# there are NAs in datgaframe.
+smove=na.omit(smove)
+str(smove)
+#Convert data into timeseries object
+myts<-ts(smove,start = c(2001,7),end = c(2017,5),frequency=12)
+plot(myts)
+#This iks onthly data
+#Frequnecy for month =12
+#Frequnecy for year =1
+#Frequnecy for Querter =4
+#Frequnecy for Day =365
+
+start(myts)
+
+#Now Subset the time seried plot we created
+myts2<-window(myts,start = c(2014,6),end=c(2014,12))
+plot(myts2)
+
+
+#
+library(devtools)
+install_github('sinhrks/ggfortify')
+#ggfortify olots timeseries object in ggplot2
+require(ggfortify)
+autoplot(myts)#Time series on Facets
+autoplot(myts,facet=F)#Time series on one plot
+
+
+#plot everything as orange
+library(xts)
+autoplot(as.xts(myts),colour='orange')#Time series on one plot
+
+```
+```{r}
+########################################################################################################
+################################Twist of temporal data################################################
+#######################################################################################################
+#Sudden change in values over a period of time
+g=read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section3\\growth-in-gdp.csv")
+head(g)
+names(g)
+#lets pic-up which column we need
+n= c("TIME" ,"Country","Value")
+#df= g[,colnames(g) %in% n]
+#head(df)
+library(dplyr)
+str(g)
+#df1=select(g,TIME,Country,Value)
+#head(df1)
+df2=data=select(g,n)
+head(df2)
+#So my time series starting in 1985
+tail(df2)
+#So Time series ending in 2015
+#How many unique countries are there.
+unique(df2$Country)
+# Extract Data for Japan
+jp=subset(data,Country=="Japan")
+#Extract Datga for India
+subset(data,Country=="India")
+head(jp)
+#Now i only need 2nd col for TS analysis
+
+data= as.numeric(unlist(jp[,3]))
+head(data)
+data=ts(data,start = c(1985),end =c(2015),frequency = 1)
+plot(data)
+
+
+#Install another packe to find Trande..Break pont detection
+#install.packages("changepoint")
+require(changepoint)
+cm=cpt.mean(data)#Abrupt change in mean
+print(cm)
+plot(cm)
+
+require(ggfortify)
+autoplot(cpt.meanvar(data ))#Abrupt change in mean and variance
+
+
+#install package to detect Structural change in data
+#install.packages("strucchange")
+require(strucchange)
+#Breakpoint function uses a linear regression to compute the breaks
+#partition that TS into segments
+autoplot(breakpoints(data~1),ts.colour="blue",ts.linetype="dashed",cpt.colour = "dodgerblue3",cpt.linetype = "solid")
+```
+

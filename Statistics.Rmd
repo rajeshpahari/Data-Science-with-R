@@ -1,0 +1,300 @@
+---
+title: "Statistics"
+author: "Rajesh K Pahari"
+date: "February 3, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+################################################################################################################################################Cetral Tendancy########################################################
+##############################################################################################################
+
+#Mean>>Average
+#Median>>Middle number after arrangingsample in sorted order
+#Mode >>Most common number
+sample_size=1000
+mean=3
+sd=.25
+x<-rnorm(sample_size,mean,sd)
+
+mean(x)
+median(x)
+hist(x)
+
+#Compare mean & Median
+y<-c(2,7,4,5,6,900,12,4)
+median(y)
+mean(y)
+hist(y)
+
+#Lets findout skewness
+#install.packages("moments")
+library(moments)
+
+skewness(y) #+ ve Skew >>>Right skewed
+
+data("iris")
+hist(iris$Petal.Length)
+skewness(iris$Petal.Length)#Left skewed..
+mean(iris$Petal.Length)
+median(iris$Petal.Length)#mean < median
+range(iris$Petal.Length)
+#No Massive outlier..we can report mean or median..we can report mean
+
+
+##############################################################################################################################################Measure of Variations########################################################
+##############################################################################################################
+
+#SD/.Variance>>>Dispertion of data from mean
+#SE(standard Error)>>>How precise esitmate of mean>>How far sample mean is from Poplation mean
+#interquartile Range[IQR[>>>Midspred is 50%>>Measure of stgatical dispertion from 75th to 25thpercentile
+
+sd(iris$Petal.Length)##standar deviation
+var(iris$Petal.Length)##variance
+
+#Install package for SE-Standard error
+#install.packages("sciplot")
+require(sciplot)
+se(iris$Petal.Length)#S.E
+
+#display 5point Summary Graph
+boxplot(iris$Petal.Length,main="5 point summary",ylab="length")
+#Thick line is median
+
+```
+```{r}
+#############################################################################################################
+############################Charting and Graphing contineous data############################################
+#############################################################################################################
+
+data("ToothGrowth")
+head(ToothGrowth)
+#How tooth length is varies with suppliment
+boxplot(len~supp,data=ToothGrowth)#compare toothlength for two diff Supp
+
+
+library(ggplot2)
+qplot(ToothGrowth$supp,ToothGrowth$len,geom="boxplot")
+#or
+ggplot(ToothGrowth,aes(x=supp,y=len))+geom_boxplot()
+
+#Load MASS library
+#
+library(MASS)
+head(birthwt)#inbuilt dataset from MASS
+str(birthwt)
+
+#Create box plot for Race as factor
+ggplot(birthwt,aes(x=factor(race),y=bwt))+geom_boxplot()
+#Add a title in previous graph
+ggplot(birthwt,aes(x=factor(race),y=bwt))+geom_boxplot()+ggtitle("Birth weight Vs Race")
+#lets flip it
+ggplot(birthwt,aes(x=factor(race),y=bwt))+geom_boxplot()+ggtitle("Birth weight Vs Race")+coord_flip()
+#dots in graph is outliers
+
+head(ChickWeight)
+#Grpup by x var
+ggplot(ChickWeight,aes(x=Time,y=weight))+geom_boxplot(aes(group=Time))
+#i want these data per diest
+ggplot(ChickWeight,aes(x=Time,y=weight))+geom_boxplot(aes(group=Time))+facet_grid(.~Diet)
+
+data("diamonds")
+head(diamonds)
+ggplot(diamonds,aes(x=factor(cut),y=price,fill=cut))+geom_boxplot()
+```
+
+```{r}
+#############################################################################################################
+############################Charting and Graphing Discrete data############################################
+#############################################################################################################
+
+#Bar Graph
+data(mtcars)
+head(mtcars)
+str(mtcars)
+#see all are nums
+c<-table(mtcars$gear)#Creates a table  for each gear value
+c
+barplot(c,main = "Car Distribution",xlab="number of Gear",col="blue")
+
+###Create a table with Speal Length's mean for each species Species
+tapply(iris$Sepal.Length,iris$Species,mean)-> t
+t
+barplot(t,main = "Mean Sepal Length of Species",xlab="Species",ylab="Mean")
+
+#call ggplot2 for diamond datasets
+library(ggplot2)
+data("diamonds")
+head(diamonds)
+
+#create a table with two variables colour and clarity
+table(diamonds$color,diamonds$clarity)->t1
+#What t1 is giving  ...how many obs are there with a combination of col D & I1....so on
+barplot(t1,legend=levels(diamonds$color)) #Cumulative figure in y axis
+barplot(t1,legend=levels(diamonds$color),beside=T)#seperate y axis for each combinations
+
+barplot( table(diamonds$color, diamonds$clarity),
+         legend = levels(diamonds$color),           
+         beside = TRUE,
+         xlab = "Diamond Clarity",                      # Add a label to the X-axis
+         ylab = "Diamond Count",                        # Add a label to the Y-axis
+         main = "Diamond Clarity, Grouped by Color",    # Add a plot title
+         col = c("#FFFFFF","#F5FCC2","#E0ED87","#CCDE57",     # Add color*
+                 "#B3C732","#94A813","#718200") )
+
+
+#Lets use qplot now
+head(mtcars)
+qplot(factor(mtcars$cyl))
+qplot(factor(cyl),data=mtcars)
+qplot(factor(cyl),data=mtcars,geom = "bar")
+
+ggplot(data=mtcars,aes(cyl))+geom_bar()
+
+
+#Stacked Bar
+head(diamonds)
+ggplot(diamonds,aes(clarity,fill=cut))+geom_bar()#Stacked bar
+ggplot(diamonds,aes(clarity,fill=cut))+geom_bar(position = "dodge")# Side by side stacked
+
+ggplot(diamonds,aes(cut,fill=cut))+geom_bar(position = "dodge")+facet_grid(.~clarity)
+
+library(ggplot2)
+#Lets play with history-Titanic dataset- a in built datset
+data("Titanic")
+head(Titanic)
+#ops ..lets import as datframe
+ship=as.data.frame(Titanic)
+head(ship)
+unique(ship$Age)
+#Want to see how many child and how many adults survived
+ggplot(aes(x=Age,weight=Freq),data=ship)+geom_bar()# See here y is not working why? 
+#because i need all the count #of childs
+
+#Check each output below
+ggplot(aes(x=Age,weight=Freq),data=ship)+geom_bar()+facet_grid(.~Sex)
+ggplot(aes(x=Age,weight=Freq),data=ship)+geom_bar()+facet_grid(Sex~.)
+ggplot(aes(x=Age,weight=Freq),data=ship)+geom_bar()+facet_grid(Sex~Class)
+
+
+########Error Bar>.Error in mean
+###One standard erro.
+###################Very Very important###############
+library(dplyr)
+#Chain function
+isum=iris%>%
+  group_by(Species)%>%
+  summarise(avg=mean(iris$Petal.Length),#calculate mean and assign to avg
+            sdpl=sd(Petal.Length)) #calculate SD and store in sdpl
+isum
+ggplot(isum,aes(x=Species,avg))+geom_bar(stat="identity")+geom_errorbar(aes(ymin=avg-sdpl,ymax=avg+sdpl),width=0.2)
+
+```
+
+```{r}
+#############################################################################################################
+##############################Deriving insight from qualitative or nominal Data##############################
+#############################################################################################################
+####Chi-square test:
+#H0: Two niminal vars have no association within them
+
+#Lets first create one table
+men=c(150,120,45)
+women=c(320,270,100)
+food.survey=as.data.frame(rbind(men,women))
+names(food.survey)= c("Chicken","salad","Cake")
+food.survey
+#Lets find if there is any relationship of zendar and food prefernces
+chisq.test(food.survey)
+#P value >>0.05. Hence accpet null hypothesis
+
+library(MASS)
+data()# Will list datasets in MASS
+data("survey")
+head(survey)
+
+#i want to see how many distinct values/levels are in smoke
+levels(survey$Smoke)
+#unique(survey$Smoke) see the diff between two output..in level NA is omitted
+#lets calculate Smoking frequency..we remeber tp cretea a table
+sfreq=table(survey$Smoke)
+sfreq
+
+
+#Lets work on two way cross tabulation multivariate frequency table
+#install.packages("gmodels")
+library(gmodels)
+
+#Frequencies and relative frequencies
+head(mtcars)
+#Create a 2D table
+table(mtcars$carb,mtcars$cyl)
+#Create Detail table
+CrossTable(mtcars$carb,mtcars$cyl,prop.t=T,prop.r = T,prop.c = T)
+#Interprete the table Created
+#Total observations 32
+#proportion of carb1=.219,prop of cyl=4 is 0.34
+
+
+
+#lets see which group is different
+m<-as.table(rbind(c(76,32,46),c(48,23,47),c(45,34,78)))
+dimnames(m)<-list(sex=c("male","female","zuvenile"),loc=c("lower","middle","upper"))
+m
+chisq.test(m)
+#p<0.05>>reject null hypo..but for which pair
+#install.packages("fifer")
+#library(fifer)
+#chisq.post.hoc(m)
+#find out the relevant package and syntax in Latest R version
+
+# Lets work with some other data
+mat<-read.csv("C:\\Personal\\Learning\\Certification\\R and ML\\Course-Script-1\\Course_Script_1\\section4\\student-mat.csv")
+head(mat)
+str(mat)
+#G3 is the final Score in math
+#Null Hypo:H0: School Support provided to math student independent their Sex
+
+tbl<-table(mat$sex,mat$schoolsup)
+chisq.test(tbl)
+#P=0.009<0.05....Reject null hypo
+
+#Cramers'Co-efficient
+#Statistical phi and Cramer's V are used to Guage The Strength of the Association of two nominal Variables
+#0<= Cramers V<=1  ....1 Perfect association
+#Stats Phi Range is [-1,1]
+require(vcd)
+assocstats(tbl)
+#So how this relationship is strong?
+
+#Lets understand how family support and Mothers job care connected?
+tbl2=table(mat$famsup,mat$Mjob)
+tbl2
+assocstats(tbl2)
+#Phi is NA as this is not 2*2 table
+
+```
+

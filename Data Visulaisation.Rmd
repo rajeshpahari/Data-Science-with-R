@@ -1,0 +1,114 @@
+---
+title: "Data Visualisation"
+author: "Rajesh K Pahari"
+date: "January 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+##########################################################################################################Data Visualisations#####################################
+#################################################################################
+
+
+#Explanatory data visualization
+
+data("iris")
+names(iris)
+summary(iris)
+
+
+#Examine data Distribution of a quantitative variable
+#lts draw a histogram
+hist(iris$Sepal.Length)#data distribution
+#boxplot
+boxplot(iris$Sepal.Length,main="Summary of Iris",xlab="Sepal Length")
+
+#######Explore the relation between Two vars
+plot(iris$Sepal.Length,iris$Sepal.Width)
+
+#Categorical or count variables
+data("mtcars")
+names(mtcars)
+str(mtcars)
+count=table(mtcars$gear)
+count
+barplot(count,main="Barlpot", xlab="gear")
+barplot(table(mtcars$carb),main="Barlpot", xlab="carb",col ="red")
+barplot(table(mtcars$carb),main="Barlpot", xlab="carb",col ="red",horiz = T)
+
+
+##########Improved Data Visualization################
+library(ggplot2)
+
+#relation between Sepal Lenght & Width for 3 species 
+qplot(iris$Sepal.Length,iris$Sepal.Width,col=iris$Species)
+#Improved one
+qplot(Sepal.Length,Sepal.Width,data=iris,col=iris$Species)
+
+qplot(Sepal.Length,Sepal.Width,data=iris,col=iris$Species,size=Petal.Width)
+
+qplot(Sepal.Length,Sepal.Width,data=iris,col=iris$Species,main = "Sepal Length Vs Sepal Width",xlab = "Sepal Length",ylab = "Sepal Width")
+#Line
+qplot(Sepal.Length,Sepal.Width,data=iris,col=iris$Species,main = "Sepal Length Vs Sepal Width",xlab = "Sepal Length",ylab = "Sepal Width",geom="line")
+
+######Using base package ggplot
+#Plot data,blox/histogram/scatter
+ggplot(data=iris,aes(Sepal.Length,Sepal.Width))+geom_point()
+#Try other Graphs
+# Now use color scheme as per species
+ggplot(data=iris,aes(Sepal.Length,Sepal.Width))+geom_point(aes(colour=(Species)))
+
+#Other way:
+ggplot(data=iris,aes(x=Sepal.Length,y=Sepal.Width,colour=Species))+geom_point()
+#With Shape
+ggplot(data=iris,aes(x=Sepal.Length,y=Sepal.Width,shape=Species))+geom_point()
+
+#Remeber colour & Shape is for factor variable
+#Factros:: Number representing Categorical Values
+#function "factor" turn any number to qualatative representation 
+#Sepcies is already factorsin iris
+str(iris)
+#Lets checkout mtcars
+str(mtcars)
+#ggplot(data=mtcars,aes(x=cyl,y=hp,colour=gear))
+#+geom_point()
+#This code will not work as colour is num.it ust be factor
+
+ggplot(data=mtcars,aes(x=cyl,y=hp,colour=factor(gear)))+geom_point()
+
+#hitogram
+ggplot(iris,aes(x=Sepal.Length))+geom_histogram()
+ggplot(iris,aes(x=Sepal.Length,fill=Species))+geom_histogram()
+
+ggplot(iris,aes(x=Sepal.Length,y=Sepal.Width, fill=Species))+geom_boxplot()
+ggplot(iris,aes(x=Sepal.Length,y=Sepal.Width, colour=Species))+geom_point()
+ggplot(iris,aes(x=Sepal.Length,y=Sepal.Width, fill=Species))+geom_point()+facet_grid(.~Species)+geom_smooth(method="lm")
+
+
+
+```
+

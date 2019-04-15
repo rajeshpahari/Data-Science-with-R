@@ -1,0 +1,64 @@
+---
+title: "Rough_work"
+author: "Rajesh K Pahari"
+date: "April 11, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+#Dimentionality reduction
+
+```{r}
+head(pa)
+library(caret)
+set.seed(1)
+
+trainindex<-createDataPartition(pa$pb,p=0.75,
+                                list=F,times=1)
+train_data<-pa[trainindex,]
+test_data<-pa[-trainindex,]
+
+#Generalized additive Model[GAM]
+head(eco)
+library(car)
+scatterplotMatrix(eco,diagonal = "histogram",smooth = F)
+
+library(mgcv)
+library(gam)
+
+names(eco)
+
+modl_lm=gam(BiocapacityT~Population+HDI+Grazing.Footprint+Carbon.Footprint+Cropland+Forest.Land+Urban.Land+GDP,data=eco)
+summary(mod_lm)#AIC: 509.8821 
+#cubic spline
+mod2_lm=gam(BiocapacityT~s(Population)+s(HDI)+s(Grazing.Footprint)+s(Carbon.Footprint)+s(Cropland)+s(Forest.Land)+s(Urban.Land)+s(GDP),data=eco)
+summary(mod2_lm)#AIC: 476.0812 
+concurvity(mod2_lm,full=T)
+```
+
+
+
+
